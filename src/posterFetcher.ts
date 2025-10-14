@@ -7,6 +7,13 @@ export interface MoviePageData {
 	movieUrl: string | null;
 }
 
+/**
+ * Fetch poster asset and metadata for a Letterboxd film entry.
+ *
+ * The supplied URL can be a short link, diary link, or canonical film page.
+ * We normalise and follow redirects until we arrive at the true film page,
+ * then rely on JSON-LD for structured data.
+ */
 export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePageData> {
 	try {
 		const { url: resolvedUrl, html } = await resolveCanonicalFilmPage(letterboxdUri);
@@ -208,6 +215,7 @@ async function resolveCanonicalFilmPage(initialUrl: string): Promise<{ url: stri
 	let html: string | null = null;
 
 	// Repeatedly follow redirects and HTML hints until we land on the canonical /film/<slug>/ page.
+	// Repeatedly resolve redirects/canonical hints until we reach the canonical slug.
 	for (let attempt = 0; attempt < 4; attempt++) {
 		const result = await requestTextWithRedirect(targetUrl);
 		lastFetchedUrl = result.url;

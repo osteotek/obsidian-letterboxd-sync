@@ -81,12 +81,12 @@ async function importMovie(
 	let metadata: MovieMetadata | undefined;
 	let resolvedMovieUrl: string | undefined;
 
-	// Fetch movie page data (poster and metadata) if enabled
-	if (movie.letterboxdUri) {
-		try {
-			const pageData = await fetchMoviePageData(movie.letterboxdUri);
-			metadata = pageData.metadata;
-			resolvedMovieUrl = pageData.movieUrl ?? undefined;
+		// Fetch movie page data (poster and metadata) if enabled
+		if (movie.letterboxdUri) {
+			try {
+				const pageData = await fetchMoviePageData(movie.letterboxdUri);
+				metadata = pageData.metadata;
+				resolvedMovieUrl = pageData.movieUrl ?? undefined;
 			
 			// Download poster if enabled
 			if (settings.downloadPosters && pageData.posterUrl) {
@@ -97,12 +97,12 @@ async function importMovie(
 
 				// Avoid redundant downloads when the attachment already lives in the vault.
 				const existingPoster = app.vault.getAbstractFileByPath(posterFullPath);
-				if (existingPoster) {
-					console.debug(`Poster already exists: ${posterFullPath}`);
-				} else {
-					await ensureFolderExists(app, posterFolderPath);
-					const posterData = await downloadPoster(pageData.posterUrl);
-					if (posterData) {
+					if (existingPoster) {
+						console.debug(`Poster already exists: ${posterFullPath}`);
+					} else {
+						await ensureFolderExists(app, posterFolderPath);
+						const posterData = await downloadPoster(pageData.posterUrl);
+						if (posterData) {
 						await app.vault.createBinary(posterFullPath, posterData);
 						console.debug(`Poster saved to ${posterFullPath}`);
 					} else {
@@ -132,6 +132,7 @@ async function ensureFolderExists(app: App, folderPath: string): Promise<void> {
 	const segments = normalizedPath.split('/').filter(Boolean);
 	let currentPath = '';
 
+	// Walk path segments and create missing folders incrementally.
 	for (const segment of segments) {
 		currentPath = currentPath ? `${currentPath}/${segment}` : segment;
 		const existing = app.vault.getAbstractFileByPath(currentPath);
@@ -145,6 +146,7 @@ async function ensureFolderExists(app: App, folderPath: string): Promise<void> {
 			continue;
 		}
 
+		// A file already occupies the desired folder path; bail out with a clear error.
 		throw new Error(`Cannot create folder ${currentPath}: a file with the same name exists.`);
 	}
 }

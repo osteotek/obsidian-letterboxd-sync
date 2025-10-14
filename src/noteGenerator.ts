@@ -87,6 +87,9 @@ export function sanitizeFileName(name: string): string {
 		.trim();
 }
 
+/**
+ * Escape user-provided strings for safe inclusion inside double-quoted YAML values.
+ */
 function escapeYamlString(value: string): string {
 	return value.replace(/"/g, '\\"');
 }
