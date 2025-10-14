@@ -112,7 +112,7 @@ describe('dataFetcher (unit)', () => {
 		expect(result.metadata.genres).toContain('Science Fiction');
 		expect(result.metadata.cast).toContain('Actor Two');
 		expect(result.metadata.cast.length).toBe(10);
-		expect(result.metadata.averageRating).toBe('4.2');
+		expect(result.metadata.letterboxdRating).toBe('4.2');
 		expect(result.metadata.studios).toContain('Example Studio');
 		expect(result.metadata.countries).toContain('Example Country');
 	});
@@ -205,7 +205,7 @@ const firstCallParam = requestUrlMock.mock.calls[0]?.[0] as { url?: string } | u
 expect(firstCallParam?.url).toBe('https://letterboxd.com/film/example-film/');
 expect(result.movieUrl).toBe('https://letterboxd.com/film/example-film/');
 expect(result.posterUrl).toBe('https://images.example/film-poster.jpg');
-expect(result.metadata.averageRating).toBe('3.8');
+		expect(result.metadata.letterboxdRating).toBe('3.8');
 expect(result.metadata.studios).toContain('Studio String');
 expect(result.metadata.countries).toEqual(expect.arrayContaining(['Country One', 'Country Two']));
 	});

@@ -91,11 +91,13 @@ class ImportModal extends Modal {
 
 		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
 		
-		const importButton = buttonContainer.createEl('button', {
-			text: 'Import',
-			cls: 'mod-cta'
-		});
-		importButton.disabled = true;
+	const importButton = buttonContainer.createEl('button', {
+		text: 'Import',
+		cls: 'mod-cta'
+	});
+	importButton.disabled = true;
+	let isImporting = false;
+	let cancelled = false;
 
 		fileInput.addEventListener('change', () => {
 			const hasFile = Boolean(fileInput.files?.length);
@@ -120,40 +122,50 @@ class ImportModal extends Modal {
 				return;
 			}
 
-			try {
-				importButton.disabled = true;
-				importButton.setText('Importing...');
+		try {
+			isImporting = true;
+			cancelled = false;
+			importButton.disabled = true;
+			importButton.setText('Importing...');
 
-				const csvContent = await file.text();
-				
-				await importLetterboxdCSV(
-					this.app,
-					csvContent,
-					this.plugin.settings,
-					{
-						sourceName: file.name,
-						onProgress: (current, total, movieName) => {
-							importButton.setText(`Importing ${current}/${total}: ${movieName}...`);
-						}
-					}
-				);
+			const csvContent = await file.text();
+			
+			await importLetterboxdCSV(
+				this.app,
+				csvContent,
+				this.plugin.settings,
+				{
+					sourceName: file.name,
+					onProgress: (current, total, movieName) => {
+						importButton.setText(`Importing ${current}/${total}: ${movieName}...`);
+					},
+					isCancelled: () => cancelled
+				}
+			);
 
-				this.close();
-			} catch (error) {
+			this.close();
+		} catch (error) {
 				console.error('Import error:', error);
 				new Notice(`Import failed: ${error.message}`);
-				importButton.disabled = false;
-				importButton.setText('Import');
-			}
-		});
+			importButton.disabled = false;
+			importButton.setText('Import');
+		}
+		isImporting = false;
+	});
 
-		const cancelButton = buttonContainer.createEl('button', {
-			text: 'Cancel'
-		});
+	const cancelButton = buttonContainer.createEl('button', {
+		text: 'Cancel'
+	});
 
-		cancelButton.addEventListener('click', () => {
+	cancelButton.addEventListener('click', () => {
+		if (isImporting) {
+			cancelled = true;
+			cancelButton.disabled = true;
+			importButton.setText('Cancelling...');
+		} else {
 			this.close();
-		});
+		}
+	});
 	}
 
 	onClose() {

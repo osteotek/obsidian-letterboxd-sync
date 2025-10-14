@@ -31,7 +31,7 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		const directors = jsonLdData?.directors ?? [];
 		const genres = jsonLdData?.genres ?? [];
 		const cast = jsonLdData?.cast ? jsonLdData.cast.slice(0, 10) : [];
-		const averageRating = jsonLdData?.averageRating ?? undefined;
+		const letterboxdRating = jsonLdData?.letterboxdRating ?? undefined;
 		const studios = jsonLdData?.studios ?? [];
 		const countries = jsonLdData?.countries ?? [];
 		const canonicalUrl = jsonLdData?.movieUrl ?? resolvedUrl;
@@ -46,7 +46,7 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 
 		return {
 			posterUrl,
-			metadata: { directors, genres, description, cast, averageRating, studios, countries },
+			metadata: { directors, genres, description, cast, letterboxdRating, studios, countries },
 			movieUrl: canonicalUrl
 		};
 	} catch (error) {

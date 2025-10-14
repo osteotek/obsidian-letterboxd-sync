@@ -20,16 +20,16 @@ describe('noteGenerator', () => {
 			genres: [],
 			description: 'Example description',
 			cast: [],
-			averageRating: '4.2',
+			letterboxdRating: '4.2',
 			studios: ['Example Studio'],
 			countries: ['Example Country']
 		};
 
 		const note = generateMovieNote(movie, undefined, metadata);
 
-		expect(note).toContain('letterboxd: https://letterboxd.com/film/example-film/');
+		expect(note).toContain('letterboxdUrl: https://letterboxd.com/film/example-film/');
 	expect(note).toContain('description: "Example description"');
-	expect(note).toContain('averageRating: 4.2');
+	expect(note).toContain('letterboxdRating: 4.2');
 	expect(note).toContain('studios:');
 	expect(note).toContain('countries:');
 		expect(note).not.toContain('# Example Film (2024)');
@@ -114,8 +114,9 @@ describe('noteGenerator', () => {
 		'https://letterboxd.com/someuser/film/example-film/'
 	);
 
-	expect(note).toContain('letterboxd: https://letterboxd.com/film/example-film/');
-	expect(note).toContain('status: Watched');
+	expect(note).toContain('letterboxdUrl: https://letterboxd.com/film/example-film/');
+		expect(note).toContain('status: Watched');
+		expect(note).toContain('letterboxdUrl: https://letterboxd.com/film/example-film/');
 	});
 
 	it('allows custom status when provided', () => {

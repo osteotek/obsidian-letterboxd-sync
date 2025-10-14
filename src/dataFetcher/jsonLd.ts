@@ -7,7 +7,7 @@ export interface JsonLdMetadata {
 	genres: string[];
 	cast: string[];
 	movieUrl: string | null;
-	averageRating: string | null;
+	letterboxdRating: string | null;
 	studios: string[];
 	countries: string[];
 }
@@ -54,7 +54,7 @@ export function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata |
 	const cast = extractPersonNames(data.actors ?? data.actor ?? data.cast);
 	const genres = extractStrings(data.genre);
 	const description = typeof data.description === 'string' ? data.description.trim() : null;
-	const averageRating = extractAggregateRatingValue(data.aggregateRating);
+	const letterboxdRating = extractAggregateRatingValue(data.aggregateRating);
 	const studios = extractOrganizationNames(data.productionCompany);
 	const countries = extractCountryNames(data.countryOfOrigin);
 	const posterUrl = ensureAbsoluteUrl(typeof data.image === 'string' ? data.image : null, baseUrl);
@@ -67,7 +67,7 @@ export function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata |
 		genres,
 		cast,
 		movieUrl,
-		averageRating,
+		letterboxdRating,
 		studios,
 		countries
 	};

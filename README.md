@@ -54,7 +54,7 @@ directors:
 genres:
   - Science Fiction
   - Action
-averageRating: 4.3
+letterboxdRating: 4.3
 studios:
   - Warner Bros.
 countries:
@@ -64,8 +64,8 @@ cast:
   - Laurence Fishburne
   - Carrie-Anne Moss
 watched: 2024-10-09
-letterboxd: https://letterboxd.com/film/the-matrix/
 status: Watched
+letterboxdUrl: https://letterboxd.com/film/the-matrix/
 ---
 
 ![[Letterboxd/attachments/The Matrix_1999.jpg]]

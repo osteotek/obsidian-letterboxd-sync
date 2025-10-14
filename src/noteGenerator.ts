@@ -29,10 +29,6 @@ export function generateMovieNote(
 	if (metadata && metadata.description) {
 		lines.push(`description: "${escapeYamlString(metadata.description)}"`);
 	}
-
-	if (metadata && metadata.averageRating) {
-		lines.push(`averageRating: ${metadata.averageRating}`);
-	}
 	
 	// Directors from metadata
 	if (metadata && metadata.directors.length > 0) {
@@ -84,7 +80,11 @@ export function generateMovieNote(
 	
 	// Use resolved URL when available, otherwise normalize diary URLs when possible
 	const letterboxdUrl = normalizeLetterboxdUrl(resolvedUrl ?? movie.letterboxdUri);
-	lines.push(`letterboxd: ${letterboxdUrl}`);
+	lines.push(`letterboxdUrl: ${letterboxdUrl}`);
+
+	if (metadata && metadata.letterboxdRating) {
+		lines.push(`letterboxdRating: ${metadata.letterboxdRating}`);
+	}
 
 	lines.push(`status: ${status}`);
 	lines.push('---');

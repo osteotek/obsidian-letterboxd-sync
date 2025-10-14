@@ -9,6 +9,7 @@ type ImportProgressCallback = (current: number, total: number, movie: string) =>
 interface ImportOptions {
 	sourceName?: string;
 	onProgress?: ImportProgressCallback;
+	isCancelled?: () => boolean;
 }
 
 export async function importLetterboxdCSV(
@@ -42,12 +43,19 @@ export async function importLetterboxdCSV(
 		let successCount = 0;
 		let failCount = 0;
 
-		for (let i = 0; i < movies.length; i++) {
-			const movie = movies[i];
-			
-			if (options?.onProgress) {
-				options.onProgress(i + 1, movies.length, movie.name);
-			}
+	let cancelled = false;
+
+	for (let i = 0; i < movies.length; i++) {
+		if (options?.isCancelled?.()) {
+			cancelled = true;
+			break;
+		}
+
+		const movie = movies[i];
+		
+		if (options?.onProgress) {
+			options.onProgress(i + 1, movies.length, movie.name);
+		}
 
 			try {
 				await importMovie(app, movie, settings, options?.sourceName);
@@ -59,9 +67,14 @@ export async function importLetterboxdCSV(
 
 			// Small delay to avoid overwhelming the system
 			await sleep(100);
-		}
+	}
 
-		new Notice(`Import complete: ${successCount} successful, ${failCount} failed`);
+	if (cancelled) {
+		new Notice(`Import cancelled: ${successCount} imported, ${failCount} failed`);
+		return;
+	}
+
+	new Notice(`Import complete: ${successCount} successful, ${failCount} failed`);
 	} catch (error) {
 		console.error('Error importing CSV:', error);
 		new Notice(`Error importing CSV: ${error.message}`);

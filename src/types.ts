@@ -14,7 +14,7 @@ export interface MovieMetadata {
 	genres: string[];
 	description: string;
 	cast: string[];
-	averageRating?: string;
+	letterboxdRating?: string;
 	studios?: string[];
 	countries?: string[];
 }
