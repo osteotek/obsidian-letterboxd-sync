@@ -40,7 +40,7 @@ export function generateMovieNote(
 			lines.push(`  - ${director}`);
 		});
 	}
-	
+
 	// Genres from metadata
 	if (metadata && metadata.genres.length > 0) {
 		lines.push('genres:');
@@ -48,7 +48,23 @@ export function generateMovieNote(
 			lines.push(`  - ${genre}`);
 		});
 	}
-	
+
+	// Production companies
+	if (metadata && metadata.studios && metadata.studios.length > 0) {
+		lines.push('studios:');
+		metadata.studios.forEach(studio => {
+			lines.push(`  - ${studio}`);
+		});
+	}
+
+	// Countries of origin
+	if (metadata && metadata.countries && metadata.countries.length > 0) {
+		lines.push('countries:');
+		metadata.countries.forEach(country => {
+			lines.push(`  - ${country}`);
+		});
+	}
+
 	// Cast from metadata
 	if (metadata && metadata.cast.length > 0) {
 		lines.push('cast:');

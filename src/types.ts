@@ -15,6 +15,8 @@ export interface MovieMetadata {
 	description: string;
 	cast: string[];
 	averageRating?: string;
+	studios?: string[];
+	countries?: string[];
 }
 
 export interface LetterboxdSyncSettings {

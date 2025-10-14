@@ -8,6 +8,8 @@ export interface JsonLdMetadata {
 	cast: string[];
 	movieUrl: string | null;
 	averageRating: string | null;
+	studios: string[];
+	countries: string[];
 }
 
 /**
@@ -53,6 +55,8 @@ export function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata |
 	const genres = extractStrings(data.genre);
 	const description = typeof data.description === 'string' ? data.description.trim() : null;
 	const averageRating = extractAggregateRatingValue(data.aggregateRating);
+	const studios = extractOrganizationNames(data.productionCompany);
+	const countries = extractCountryNames(data.countryOfOrigin);
 	const posterUrl = ensureAbsoluteUrl(typeof data.image === 'string' ? data.image : null, baseUrl);
 	const movieUrl = ensureAbsoluteUrl(typeof data.url === 'string' ? data.url : null, baseUrl);
 
@@ -63,7 +67,9 @@ export function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata |
 		genres,
 		cast,
 		movieUrl,
-		averageRating
+		averageRating,
+		studios,
+		countries
 	};
 }
 
@@ -105,6 +111,40 @@ function extractAggregateRatingValue(value: unknown): string | null {
 	}
 
 	return null;
+}
+
+function extractOrganizationNames(value: unknown): string[] {
+	if (!value) {
+		return [];
+	}
+	const entries = Array.isArray(value) ? value : [value];
+	const names: string[] = [];
+	for (const entry of entries) {
+		if (entry && typeof entry === 'object' && 'name' in entry && typeof (entry as { name: unknown }).name === 'string') {
+			names.push((entry as { name: string }).name);
+		}
+		if (typeof entry === 'string') {
+			names.push(entry);
+		}
+	}
+	return names;
+}
+
+function extractCountryNames(value: unknown): string[] {
+	if (!value) {
+		return [];
+	}
+	const entries = Array.isArray(value) ? value : [value];
+	const results: string[] = [];
+	for (const entry of entries) {
+		if (entry && typeof entry === 'object' && 'name' in entry && typeof (entry as { name: unknown }).name === 'string') {
+			results.push((entry as { name: string }).name);
+		}
+		if (typeof entry === 'string') {
+			results.push(entry);
+		}
+	}
+	return results;
 }
 
 /**
