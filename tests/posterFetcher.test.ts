@@ -44,7 +44,20 @@ describe('posterFetcher (unit)', () => {
 							"@type": "Movie",
 							"image": "https://images.example/film-poster.jpg",
 							"director": [{"@type":"Person","name":"Director Name"}],
-							"actors": [{"@type":"Person","name":"Actor One"},{"@type":"Person","name":"Actor Two"}],
+							"actors": [
+								{"@type":"Person","name":"Actor One"},
+								{"@type":"Person","name":"Actor Two"},
+								{"@type":"Person","name":"Actor Three"},
+								{"@type":"Person","name":"Actor Four"},
+								{"@type":"Person","name":"Actor Five"},
+								{"@type":"Person","name":"Actor Six"},
+								{"@type":"Person","name":"Actor Seven"},
+								{"@type":"Person","name":"Actor Eight"},
+								{"@type":"Person","name":"Actor Nine"},
+								{"@type":"Person","name":"Actor Ten"},
+								{"@type":"Person","name":"Actor Eleven"},
+								{"@type":"Person","name":"Actor Twelve"}
+							],
 							"genre": ["Drama", "Science Fiction"],
 							"description": "Example description.",
 							"url": "https://letterboxd.com/film/example-film/"
@@ -85,6 +98,37 @@ describe('posterFetcher (unit)', () => {
 		expect(result.metadata.directors).toContain('Director Name');
 		expect(result.metadata.genres).toContain('Science Fiction');
 		expect(result.metadata.cast).toContain('Actor Two');
+		expect(result.metadata.cast.length).toBe(10);
+	});
+
+	it('falls back to og description when JSON-LD description missing', async () => {
+		const html = `
+			<html>
+				<head>
+					<script type="application/ld+json">
+						{
+							"@type": "Movie",
+							"image": "https://images.example/film-poster.jpg",
+							"director": [{"@type":"Person","name":"Director Name"}],
+							"actors": [{"@type":"Person","name":"Actor One"}],
+							"genre": ["Drama"],
+							"url": "https://letterboxd.com/film/example-film/"
+						}
+					</script>
+					<meta property="og:description" content="OG description" />
+				</head>
+			</html>
+		`;
+
+		queueResponses([
+			{
+				status: 200,
+				text: html
+			}
+		]);
+
+		const result = await fetchMoviePageData('https://letterboxd.com/film/example-film/');
+		expect(result.metadata.description).toBe('OG description');
 	});
 
 	it('downloads poster binary following redirects', async () => {

@@ -9,75 +9,31 @@ export interface MoviePageData {
 
 export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePageData> {
 	try {
-		let moviePageUrl = letterboxdUri;
-		let html: string | null = null;
-		let canonicalUrl: string | null = null;
-
-		const directNormalizedUrl = normalizeFilmUrl(letterboxdUri);
-		if (directNormalizedUrl) {
-			moviePageUrl = directNormalizedUrl;
-			canonicalUrl = directNormalizedUrl;
-		}
-		
-		if (letterboxdUri.includes('boxd.it')) {
-			const shortResult = await requestTextWithRedirect(letterboxdUri);
-			let expandedUrl = shortResult.url;
-		let expandedHtml = shortResult.text;
-
-			if (!expandedHtml) {
-				const finalResult = await requestTextWithRedirect(expandedUrl);
-				expandedUrl = finalResult.url;
-				expandedHtml = finalResult.text;
-			}
-
-		const normalizedUrl = normalizeFilmUrl(expandedUrl) ?? extractCanonicalUrlFromHtml(expandedHtml, expandedUrl) ?? null;
-
-			if (normalizedUrl) {
-				moviePageUrl = normalizedUrl;
-				canonicalUrl = normalizedUrl;
-				if (normalizedUrl === expandedUrl) {
-					html = expandedHtml;
-				}
-			} else {
-			console.warn(`Falling back to expanded URL for Letterboxd short link: ${expandedUrl}`);
-			moviePageUrl = expandedUrl;
-			canonicalUrl = extractCanonicalUrlFromHtml(expandedHtml, expandedUrl) ?? expandedUrl;
-				html = expandedHtml;
-			}
-		}
-		
-	if (!html) {
-		const pageResult = await requestTextWithRedirect(moviePageUrl);
-		html = pageResult.text;
-		if (!canonicalUrl) {
-			canonicalUrl = normalizeFilmUrl(pageResult.url)
-				?? extractCanonicalUrlFromHtml(html, pageResult.url)
-				?? normalizeFilmUrl(moviePageUrl)
-				?? pageResult.url;
-		}
-	} else if (!canonicalUrl) {
-		canonicalUrl = normalizeFilmUrl(moviePageUrl)
-			?? extractCanonicalUrlFromHtml(html, moviePageUrl)
-			?? moviePageUrl;
-	}
-		
-		const jsonLdData = html ? parseJsonLdData(html, moviePageUrl) : null;
+		const { url: resolvedUrl, html } = await resolveCanonicalFilmPage(letterboxdUri);
+		// We only trust JSON-LD for metadata; HTML is used solely as a fallback for description/canonical URL hints.
+		const jsonLdData = html ? parseJsonLdData(html, resolvedUrl) : null;
 		if (!jsonLdData) {
-			console.warn(`JSON-LD metadata missing for ${moviePageUrl}`);
+			console.warn(`JSON-LD metadata missing for ${resolvedUrl}`);
 		}
 		const posterUrl = jsonLdData?.posterUrl ?? null;
-		const description = jsonLdData?.description ?? '';
+		let description = jsonLdData?.description ?? '';
+		if ((!description || description.trim().length === 0) && html) {
+			const fallbackDescription = extractDescriptionFromHtml(html);
+			if (fallbackDescription) {
+				console.debug('Using fallback OG description from HTML');
+				description = fallbackDescription;
+			}
+		}
+		description = description.trim();
 		const directors = jsonLdData?.directors ?? [];
 		const genres = jsonLdData?.genres ?? [];
-		const cast = jsonLdData?.cast ?? [];
+		const cast = jsonLdData?.cast ? jsonLdData.cast.slice(0, 10) : [];
+		const canonicalUrl = jsonLdData?.movieUrl ?? resolvedUrl;
 		if (jsonLdData?.movieUrl) {
-			canonicalUrl = jsonLdData.movieUrl;
-			console.debug(`Canonical URL from JSON-LD: ${canonicalUrl}`);
-		} else if (posterUrl) {
-			console.debug(`Poster found without canonical URL for ${moviePageUrl}`);
+			console.debug(`Canonical URL from JSON-LD: ${jsonLdData.movieUrl}`);
 		}
 		if (!posterUrl) {
-			console.warn(`JSON-LD metadata missing poster image for ${moviePageUrl}`);
+			console.warn(`JSON-LD metadata missing poster image for ${resolvedUrl}`);
 		} else {
 			console.debug(`Poster URL from JSON-LD: ${posterUrl}`);
 		}
@@ -85,7 +41,7 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		return {
 			posterUrl,
 			metadata: { directors, genres, description, cast },
-			movieUrl: canonicalUrl ?? moviePageUrl
+			movieUrl: canonicalUrl
 		};
 	} catch (error) {
 		console.error(`Error fetching data from ${letterboxdUri}:`, error);
@@ -246,6 +202,32 @@ const HTML_HEADERS = {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ObsidianLetterboxdSync/1.0'
 };
 
+async function resolveCanonicalFilmPage(initialUrl: string): Promise<{ url: string; html: string }> {
+	let targetUrl = normalizeFilmUrl(initialUrl) ?? initialUrl;
+	let lastFetchedUrl = initialUrl;
+	let html: string | null = null;
+
+	// Repeatedly follow redirects and HTML hints until we land on the canonical /film/<slug>/ page.
+	for (let attempt = 0; attempt < 4; attempt++) {
+		const result = await requestTextWithRedirect(targetUrl);
+		lastFetchedUrl = result.url;
+		const normalizedFromFetch = normalizeFilmUrl(result.url) ?? extractCanonicalUrlFromHtml(result.text, result.url) ?? null;
+
+		if (normalizedFromFetch && normalizedFromFetch !== result.url) {
+			console.debug(`Resolved ${result.url} to canonical ${normalizedFromFetch}, refetching.`);
+			targetUrl = normalizedFromFetch;
+			html = null;
+			continue;
+		}
+
+		html = result.text;
+		const finalUrl = normalizedFromFetch ?? result.url;
+		return { url: finalUrl, html };
+	}
+
+	throw new Error(`Unable to resolve canonical film page for ${initialUrl} (last fetched ${lastFetchedUrl})`);
+}
+
 async function requestTextWithRedirect(url: string, maxRedirects = 5): Promise<{ url: string; text: string }> {
 	let currentUrl = url;
 	for (let i = 0; i <= maxRedirects; i++) {
@@ -256,13 +238,15 @@ async function requestTextWithRedirect(url: string, maxRedirects = 5): Promise<{
 				throw: false
 			});
 
-			const location = getHeader(response.headers, 'location');
-			if (isRedirect(response.status) && location) {
-				currentUrl = resolveUrl(location, currentUrl);
-				continue;
-			}
+		const location = getHeader(response.headers, 'location');
+		if (isRedirect(response.status) && location) {
+			console.debug(`Redirect ${response.status} from ${currentUrl} to ${location}`);
+			currentUrl = resolveUrl(location, currentUrl);
+			continue;
+		}
 
 		if (response.status >= 200 && response.status < 300) {
+			console.debug(`Fetched ${currentUrl} with status ${response.status}`);
 			return { url: currentUrl, text: response.text };
 		}
 
@@ -287,15 +271,17 @@ async function requestArrayBufferWithRedirect(url: string, maxRedirects = 5): Pr
 
 			const location = getHeader(response.headers, 'location');
 			if (isRedirect(response.status) && location) {
+				console.debug(`Binary redirect ${response.status} from ${currentUrl} to ${location}`);
 				currentUrl = resolveUrl(location, currentUrl);
 				continue;
 			}
 
-		if (response.status >= 200 && response.status < 300) {
-			return { url: currentUrl, arrayBuffer: response.arrayBuffer };
-		}
+			if (response.status >= 200 && response.status < 300) {
+				console.debug(`Fetched binary ${currentUrl} with status ${response.status}`);
+				return { url: currentUrl, arrayBuffer: response.arrayBuffer };
+			}
 
-		throw new Error(`Failed to download resource ${currentUrl}: status ${response.status}`);
+			throw new Error(`Failed to download resource ${currentUrl}: status ${response.status}`);
 	}
 
 	throw new Error(`Too many redirects when fetching binary resource ${url}`);
@@ -344,6 +330,24 @@ function extractCanonicalUrlFromHtml(html: string | null, baseUrl?: string): str
 		if (ogUrl) {
 			return ogUrl;
 		}
+	}
+
+	return null;
+}
+
+function extractDescriptionFromHtml(html: string | null): string | null {
+	if (!html) {
+		return null;
+	}
+
+	const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+	if (ogDescMatch && ogDescMatch[1]) {
+		return ogDescMatch[1].trim();
+	}
+
+	const metaDescMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+	if (metaDescMatch && metaDescMatch[1]) {
+		return metaDescMatch[1].trim();
 	}
 
 	return null;

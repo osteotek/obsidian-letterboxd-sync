@@ -10,7 +10,7 @@ export function generateMovieNote(
 	
 	// YAML frontmatter
 	lines.push('---');
-	lines.push(`title: "${movie.name}"`);
+	lines.push(`title: "${escapeYamlString(movie.name)}"`);
 	lines.push(`year: ${movie.year}`);
 	
 	if (movie.rating) {
@@ -23,7 +23,7 @@ export function generateMovieNote(
 	
 	// Description from metadata
 	if (metadata && metadata.description) {
-		lines.push(`description: "${metadata.description}"`);
+		lines.push(`description: "${escapeYamlString(metadata.description)}"`);
 	}
 	
 	// Directors from metadata
@@ -85,6 +85,10 @@ export function sanitizeFileName(name: string): string {
 		.replace(/[\\/:*?"<>|]/g, '-')
 		.replace(/\s+/g, ' ')
 		.trim();
+}
+
+function escapeYamlString(value: string): string {
+	return value.replace(/"/g, '\\"');
 }
 
 function normalizeLetterboxdUrl(urlString: string): string {

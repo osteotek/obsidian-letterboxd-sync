@@ -5,7 +5,7 @@ import { LetterboxdSyncSettings } from './types';
 export const DEFAULT_SETTINGS: LetterboxdSyncSettings = {
 	outputFolder: 'Letterboxd',
 	downloadPosters: true,
-	posterFolder: 'Letterboxd/posters',
+	posterFolder: 'Letterboxd/attachments',
 	templateFormat: 'default'
 };
 
@@ -47,7 +47,7 @@ export class LetterboxdSettingTab extends PluginSettingTab {
 			.setName('Poster folder')
 			.setDesc('Folder where poster images will be saved')
 			.addText(text => text
-				.setPlaceholder('Letterboxd/posters')
+				.setPlaceholder('Letterboxd/attachments')
 				.setValue(this.plugin.settings.posterFolder)
 				.onChange(async (value) => {
 					this.plugin.settings.posterFolder = value;

@@ -18,13 +18,14 @@ describe('noteGenerator', () => {
 		const metadata: MovieMetadata = {
 			directors: [],
 			genres: [],
-			description: '',
+			description: 'Example description',
 			cast: []
 		};
 
 		const note = generateMovieNote(movie, undefined, metadata);
 
 		expect(note).toContain('letterboxd: https://letterboxd.com/film/example-film/');
+		expect(note).toContain('description: "Example description"');
 		expect(note).not.toContain('# Example Film (2024)');
 		expect(note).toContain('## Notes');
 	});
@@ -48,10 +49,10 @@ describe('noteGenerator', () => {
 			cast: []
 		};
 
-		const note = generateMovieNote(movie, 'Letterboxd/posters/example.jpg', metadata);
+		const note = generateMovieNote(movie, 'Letterboxd/attachments/example.jpg', metadata);
 
 		const body = note.split('---\n').pop() ?? '';
-		expect(body).toContain('![[Letterboxd/posters/example.jpg]]');
+		expect(body).toContain('![[Letterboxd/attachments/example.jpg]]');
 	});
 
 	it('normalizes resolved URL to canonical film URL', () => {

@@ -95,13 +95,18 @@ async function importMovie(
 				const posterFullPath = normalizePath(posterPath);
 				const posterFolderPath = getFolderPath(posterFullPath);
 
-				// Check if poster already exists
+				// Avoid redundant downloads when the attachment already lives in the vault.
 				const existingPoster = app.vault.getAbstractFileByPath(posterFullPath);
-				if (!existingPoster) {
+				if (existingPoster) {
+					console.debug(`Poster already exists: ${posterFullPath}`);
+				} else {
 					await ensureFolderExists(app, posterFolderPath);
 					const posterData = await downloadPoster(pageData.posterUrl);
 					if (posterData) {
 						await app.vault.createBinary(posterFullPath, posterData);
+						console.debug(`Poster saved to ${posterFullPath}`);
+					} else {
+						console.warn(`Poster download returned empty data for ${movie.name}`);
 					}
 				}
 			}
