@@ -7,10 +7,11 @@ Bring your Letterboxd diary into Obsidian with one command. The plugin reads Let
 ## Highlights
 
 - **One-step import** – batch process any Letterboxd CSV export (`watched.csv`, `ratings.csv`, etc.).
-- **Rich metadata** – JSON‑LD scraping adds title, year, description, directors, genres, and the first ten cast members.
+- **Rich metadata** – JSON‑LD scraping adds title, year, description, directors, genres, studios, countries, and the first ten cast members (plus average rating).
 - **Poster handling** – optionally download posters via Obsidian’s `requestUrl` (or default to remote links) and skip files that already exist.
 - **Clean notes** – YAML frontmatter for Dataview, embedded poster, converted tags, and a ready‑to‑edit notes section.
 - **Safe re-runs** – duplicate detection, file-name sanitisation, and automatic folder creation keep your vault tidy.
+- **Status aware** – diary exports set status to *Watched* (based on watched date); `watchlist.csv` entries default to *Want to Watch*.
 
 ---
 
@@ -54,6 +55,10 @@ genres:
   - Science Fiction
   - Action
 averageRating: 4.3
+studios:
+  - Warner Bros.
+countries:
+  - United States
 cast:
   - Keanu Reeves
   - Laurence Fishburne

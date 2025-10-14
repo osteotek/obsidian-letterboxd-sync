@@ -67,6 +67,7 @@ class ImportModal extends Modal {
 			? `Posters will be saved to ${this.plugin.settings.posterFolder || 'the configured attachments folder'}.`
 			: 'Posters will remain on Letterboxd; notes will link to the online image.';
 		summaryList.createEl('li', { text: posterSummary });
+		summaryList.createEl('li', { text: 'Status rules: watched.csv → Watched, watchlist.csv → Want to Watch, other CSVs use the watched date.' });
 
 		const fileSetting = contentEl.createDiv({ cls: 'setting-item' });
 		const fileInfo = fileSetting.createDiv({ cls: 'setting-item-info' });
@@ -113,8 +114,11 @@ class ImportModal extends Modal {
 					this.app,
 					csvContent,
 					this.plugin.settings,
-					(current, total, movie) => {
-						importButton.setText(`Importing ${current}/${total}: ${movie}...`);
+					{
+						sourceName: file.name,
+						onProgress: (current, total, movieName) => {
+							importButton.setText(`Importing ${current}/${total}: ${movieName}...`);
+						}
 					}
 				);
 

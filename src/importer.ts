@@ -4,11 +4,18 @@ import { parseLetterboxdCSV } from './csvParser';
 import { fetchMoviePageData, downloadPoster } from './dataFetcher';
 import { generateMovieNote, sanitizeFileName } from './noteGenerator';
 
+type ImportProgressCallback = (current: number, total: number, movie: string) => void;
+
+interface ImportOptions {
+	sourceName?: string;
+	onProgress?: ImportProgressCallback;
+}
+
 export async function importLetterboxdCSV(
 	app: App,
 	csvContent: string,
 	settings: LetterboxdSyncSettings,
-	onProgress?: (current: number, total: number, movie: string) => void
+	options?: ImportOptions
 ): Promise<void> {
 	try {
 		// Parse CSV
@@ -38,12 +45,12 @@ export async function importLetterboxdCSV(
 		for (let i = 0; i < movies.length; i++) {
 			const movie = movies[i];
 			
-			if (onProgress) {
-				onProgress(i + 1, movies.length, movie.name);
+			if (options?.onProgress) {
+				options.onProgress(i + 1, movies.length, movie.name);
 			}
 
 			try {
-				await importMovie(app, movie, settings);
+				await importMovie(app, movie, settings, options?.sourceName);
 				successCount++;
 			} catch (error) {
 				console.error(`Failed to import ${movie.name}:`, error);
@@ -65,49 +72,42 @@ export async function importLetterboxdCSV(
 async function importMovie(
 	app: App,
 	movie: LetterboxdMovie,
-	settings: LetterboxdSyncSettings
+	settings: LetterboxdSyncSettings,
+	sourceName?: string
 ): Promise<void> {
 	const fileName = sanitizeFileName(`${movie.name} (${movie.year})`);
 	const filePath = normalizePath(`${settings.outputFolder}/${fileName}.md`);
 
-	// Check if file already exists
 	const existingFile = app.vault.getAbstractFileByPath(filePath);
-	if (existingFile instanceof TFile) {
-		console.log(`File already exists: ${filePath}`);
-		return;
-	}
+	const existingTFile = existingFile instanceof TFile ? existingFile : null;
 
 	let posterPath: string | undefined;
 	let posterLink: string | undefined;
 	let metadata: MovieMetadata | undefined;
 	let resolvedMovieUrl: string | undefined;
+	const status = determineStatus(movie, sourceName);
 
-		// Fetch movie page data (poster and metadata) if enabled
-		if (movie.letterboxdUri) {
-			try {
-				const pageData = await fetchMoviePageData(movie.letterboxdUri);
-				metadata = pageData.metadata;
-				resolvedMovieUrl = pageData.movieUrl ?? undefined;
-			
+	if (movie.letterboxdUri) {
+		try {
+			const pageData = await fetchMoviePageData(movie.letterboxdUri);
+			metadata = pageData.metadata;
+			resolvedMovieUrl = pageData.movieUrl ?? undefined;
 			if (pageData.posterUrl) {
 				posterLink = pageData.posterUrl;
 			}
 
-			// Download poster if enabled
 			if (settings.downloadPosters && pageData.posterUrl) {
 				const posterFileName = sanitizeFileName(`${movie.name}_${movie.year}.jpg`);
 				posterPath = `${settings.posterFolder}/${posterFileName}`;
 				const posterFullPath = normalizePath(posterPath);
 				const posterFolderPath = getFolderPath(posterFullPath);
-
-				// Avoid redundant downloads when the attachment already lives in the vault.
 				const existingPoster = app.vault.getAbstractFileByPath(posterFullPath);
-					if (existingPoster) {
-						console.debug(`Poster already exists: ${posterFullPath}`);
-					} else {
-						await ensureFolderExists(app, posterFolderPath);
-						const posterData = await downloadPoster(pageData.posterUrl);
-						if (posterData) {
+				if (existingPoster) {
+					console.debug(`Poster already exists: ${posterFullPath}`);
+				} else {
+					await ensureFolderExists(app, posterFolderPath);
+					const posterData = await downloadPoster(pageData.posterUrl);
+					if (posterData) {
 						await app.vault.createBinary(posterFullPath, posterData);
 						console.debug(`Poster saved to ${posterFullPath}`);
 					} else {
@@ -117,21 +117,26 @@ async function importMovie(
 			}
 		} catch (error) {
 			console.error(`Failed to fetch data for ${movie.name}:`, error);
-			// Continue without poster and metadata
 		}
 	}
 
-	// Generate note content with metadata (poster path or external link based on settings)
 	const noteContent = generateMovieNote(
 		movie,
 		settings.downloadPosters ? posterPath : undefined,
 		metadata,
 		resolvedMovieUrl,
-		posterLink
+		posterLink,
+		status
 	);
 
-	// Create the note
-	await app.vault.create(filePath, noteContent);
+	if (existingTFile) {
+		const existingContent = await app.vault.read(existingTFile);
+		const existingNotesSection = extractNotesSection(existingContent);
+		const finalContent = mergeWithExistingNotes(noteContent, existingNotesSection);
+		await app.vault.modify(existingTFile, finalContent);
+	} else {
+		await app.vault.create(filePath, noteContent);
+	}
 }
 
 async function ensureFolderExists(app: App, folderPath: string): Promise<void> {
@@ -170,4 +175,35 @@ function getFolderPath(filePath: string): string {
 	const parts = normalizePath(filePath).split('/');
 	parts.pop();
 	return parts.join('/');
+}
+
+function determineStatus(movie: LetterboxdMovie, sourceName?: string): string {
+	const source = sourceName?.toLowerCase() ?? '';
+	if (source.endsWith('watchlist.csv')) {
+		return 'Want to Watch';
+	}
+	if (source.endsWith('watched.csv')) {
+		return 'Watched';
+	}
+	return movie.watchedDate && movie.watchedDate.trim().length > 0 ? 'Watched' : 'Want to Watch';
+}
+
+function extractNotesSection(content: string): string | null {
+	const index = content.indexOf('## Notes');
+	if (index === -1) {
+		return null;
+	}
+	return content.slice(index);
+}
+
+function mergeWithExistingNotes(newContent: string, existingNotesSection: string | null): string {
+	if (!existingNotesSection) {
+		return newContent;
+	}
+	const markerIndex = newContent.indexOf('## Notes');
+	if (markerIndex === -1) {
+		return newContent.trimEnd() + '\n\n' + existingNotesSection;
+	}
+	const prefix = newContent.slice(0, markerIndex);
+	return `${prefix}${existingNotesSection}`;
 }

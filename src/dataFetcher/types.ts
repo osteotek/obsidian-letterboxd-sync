@@ -9,7 +9,7 @@ export interface MoviePageData {
 export function createEmptyPageData(): MoviePageData {
 	return {
 		posterUrl: null,
-		metadata: { directors: [], genres: [], description: '', cast: [] },
+		metadata: { directors: [], genres: [], description: '', cast: [], studios: [], countries: [] },
 		movieUrl: null
 	};
 }

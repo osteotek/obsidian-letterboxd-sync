@@ -5,7 +5,8 @@ export function generateMovieNote(
 	posterPath?: string,
 	metadata?: MovieMetadata,
 	resolvedUrl?: string,
-	posterLink?: string
+	posterLink?: string,
+	status: string = 'Watched'
 ): string {
 	const lines: string[] = [];
 	
@@ -84,8 +85,8 @@ export function generateMovieNote(
 	// Use resolved URL when available, otherwise normalize diary URLs when possible
 	const letterboxdUrl = normalizeLetterboxdUrl(resolvedUrl ?? movie.letterboxdUri);
 	lines.push(`letterboxd: ${letterboxdUrl}`);
-	
-	lines.push('status: Watched');
+
+	lines.push(`status: ${status}`);
 	lines.push('---');
 	lines.push('');
 	
