@@ -8,7 +8,7 @@ Bring your Letterboxd diary into Obsidian with one command. The plugin reads Let
 
 - **One-step import** – batch process any Letterboxd CSV export (`watched.csv`, `ratings.csv`, etc.).
 - **Rich metadata** – JSON‑LD scraping adds title, year, description, directors, genres, and the first ten cast members.
-- **Poster handling** – downloads posters via Obsidian’s `requestUrl`, stores them in `Letterboxd/attachments`, and skips files that already exist.
+- **Poster handling** – optionally download posters via Obsidian’s `requestUrl` (or default to remote links) and skip files that already exist.
 - **Clean notes** – YAML frontmatter for Dataview, embedded poster, converted tags, and a ready‑to‑edit notes section.
 - **Safe re-runs** – duplicate detection, file-name sanitisation, and automatic folder creation keep your vault tidy.
 
@@ -35,7 +35,7 @@ Bring your Letterboxd diary into Obsidian with one command. The plugin reads Let
 | Download posters | Disabled | Toggle automatic poster downloads. |
 | Poster folder | `Letterboxd/attachments` | Storage location for poster images. |
 
-The plugin creates folders on demand and reuses existing posters when present.
+The plugin creates folders on demand and reuses existing posters when present. When downloads are disabled, notes embed a Markdown image that links directly to Letterboxd’s poster.
 
 ---
 
