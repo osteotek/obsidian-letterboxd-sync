@@ -11,7 +11,7 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		const response = await fetch(letterboxdUri);
 		if (!response.ok) {
 			console.error(`Failed to fetch ${letterboxdUri}: ${response.status}`);
-			return { posterUrl: null, metadata: { directors: [], genres: [] } };
+			return { posterUrl: null, metadata: { directors: [], genres: [], description: '' } };
 		}
 
 		const html = await response.text();
@@ -25,6 +25,19 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 			const posterMatch = html.match(/<img[^>]+class="[^"]*image[^"]*"[^>]+src="([^"]+)"/);
 			if (posterMatch && posterMatch[1]) {
 				posterUrl = posterMatch[1];
+			}
+		}
+
+		// Extract description from og:description meta tag
+		let description = '';
+		const ogDescMatch = html.match(/<meta property="og:description" content="([^"]+)"/);
+		if (ogDescMatch && ogDescMatch[1]) {
+			description = ogDescMatch[1].trim();
+		} else {
+			// Fallback: try meta name="description"
+			const descMatch = html.match(/<meta name="description" content="([^"]+)"/);
+			if (descMatch && descMatch[1]) {
+				description = descMatch[1].trim();
 			}
 		}
 
@@ -48,11 +61,11 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 
 		return {
 			posterUrl,
-			metadata: { directors, genres }
+			metadata: { directors, genres, description }
 		};
 	} catch (error) {
 		console.error(`Error fetching data from ${letterboxdUri}:`, error);
-		return { posterUrl: null, metadata: { directors: [], genres: [] } };
+		return { posterUrl: null, metadata: { directors: [], genres: [], description: '' } };
 	}
 }
 

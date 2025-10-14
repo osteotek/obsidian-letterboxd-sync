@@ -20,6 +20,11 @@ export function generateMovieNote(
 		lines.push(`cover: "[[${posterPath}]]"`);
 	}
 	
+	// Description from metadata
+	if (metadata && metadata.description) {
+		lines.push(`description: "${metadata.description}"`);
+	}
+	
 	// Directors from metadata
 	if (metadata && metadata.directors.length > 0) {
 		lines.push('directors:');
@@ -61,6 +66,12 @@ export function generateMovieNote(
 	// Body content
 	lines.push(`# ${movie.name} (${movie.year})`);
 	lines.push('');
+	
+	// Include poster image in body (outside frontmatter)
+	if (posterPath) {
+		lines.push(`![[${posterPath}]]`);
+		lines.push('');
+	}
 	
 	if (movie.tags) {
 		const tags = movie.tags.split(',').map(t => t.trim()).filter(t => t);

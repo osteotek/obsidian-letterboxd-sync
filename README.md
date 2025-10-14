@@ -55,6 +55,7 @@ title: "Movie Title"
 year: Year
 rating: 4.5
 cover: "[[poster.jpg]]"
+description: "Movie description from Letterboxd"
 directors:
   - Director Name
 genres:
@@ -67,6 +68,8 @@ status: Watched
 ---
 
 # Movie Title (Year)
+
+![[poster.jpg]]
 
 Tags: #tag1, #tag2
 

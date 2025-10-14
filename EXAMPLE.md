@@ -18,6 +18,7 @@ title: "The Matrix"
 year: 1999
 rating: 4.5
 cover: "[[Letterboxd/posters/The Matrix_1999.jpg]]"
+description: "Set in the 22nd century, The Matrix tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers who now rule the earth."
 directors:
   - The Wachowskis
 genres:
@@ -30,6 +31,8 @@ status: Watched
 
 # The Matrix (1999)
 
+![[Letterboxd/posters/The Matrix_1999.jpg]]
+
 Tags: #sci-fi, #action
 
 ## Notes
@@ -40,7 +43,7 @@ Tags: #sci-fi, #action
 ## Note Features
 
 ### YAML Frontmatter
-The plugin generates structured YAML frontmatter with all movie metadata, making notes compatible with Dataview and other Obsidian plugins. Includes title, year, rating, directors, genres, watched date, rewatch status, and Letterboxd link.
+The plugin generates structured YAML frontmatter with all movie metadata, making notes compatible with Dataview and other Obsidian plugins. Includes title, year, rating, cover, description, directors, genres, watched date, rewatch status, and Letterboxd link.
 
 ### Embedded Images
 Poster images are automatically downloaded and embedded using Obsidian's `![[filename]]` syntax.
