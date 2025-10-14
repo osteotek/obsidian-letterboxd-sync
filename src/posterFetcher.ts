@@ -3,43 +3,50 @@ import { MovieMetadata } from './types';
 export interface MoviePageData {
 	posterUrl: string | null;
 	metadata: MovieMetadata;
+	movieUrl: string | null;
 }
 
 export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePageData> {
 	try {
-		// If the URI is a boxd.it short URL, we need to follow it to get the actual movie page
 		let moviePageUrl = letterboxdUri;
+		let html: string | null = null;
+		let canonicalUrl: string | null = null;
 		
 		if (letterboxdUri.includes('boxd.it')) {
-			// Fetch the short URL to get redirected to the user diary page
 			const response = await fetch(letterboxdUri, { redirect: 'follow' });
 			if (!response.ok) {
 				console.error(`Failed to fetch ${letterboxdUri}: ${response.status}`);
-				return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
+				return createEmptyPageData();
 			}
 			
-			// Get the final URL after redirect (e.g., https://letterboxd.com/username/film/movie-name/)
 			const redirectedUrl = response.url;
+			const normalizedUrl = normalizeFilmUrl(redirectedUrl);
 			
-			// Extract the movie slug by removing the username part
-			// Pattern: https://letterboxd.com/username/film/movie-slug/ -> https://letterboxd.com/film/movie-slug/
-			const movieSlugMatch = redirectedUrl.match(/letterboxd\.com\/[^\/]+\/(film\/[^\/]+\/?)$/);
-			if (movieSlugMatch) {
-				moviePageUrl = `https://letterboxd.com/${movieSlugMatch[1]}`;
-			} else {
+			if (!normalizedUrl) {
 				console.error(`Could not extract movie page from: ${redirectedUrl}`);
-				return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
+				return createEmptyPageData();
+			}
+
+			moviePageUrl = normalizedUrl;
+			canonicalUrl = normalizedUrl;
+			if (normalizedUrl === redirectedUrl) {
+				html = await response.text();
 			}
 		}
 		
-		// Fetch the actual movie page
-		const response = await fetch(moviePageUrl);
-		if (!response.ok) {
-			console.error(`Failed to fetch movie page ${moviePageUrl}: ${response.status}`);
-			return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
+		if (!html) {
+			const response = await fetch(moviePageUrl);
+			if (!response.ok) {
+				console.error(`Failed to fetch movie page ${moviePageUrl}: ${response.status}`);
+				return createEmptyPageData();
+			}
+			html = await response.text();
+			if (!canonicalUrl) {
+				canonicalUrl = normalizeFilmUrl(response.url) ?? normalizeFilmUrl(moviePageUrl) ?? response.url;
+			}
+		} else if (!canonicalUrl) {
+			canonicalUrl = normalizeFilmUrl(moviePageUrl) ?? moviePageUrl;
 		}
-
-		const html = await response.text();
 		
 		// Extract poster URL
 		let posterUrl: string | null = null;
@@ -95,11 +102,12 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 
 		return {
 			posterUrl,
-			metadata: { directors, genres, description, cast }
+			metadata: { directors, genres, description, cast },
+			movieUrl: canonicalUrl ?? moviePageUrl
 		};
 	} catch (error) {
 		console.error(`Error fetching data from ${letterboxdUri}:`, error);
-		return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
+		return createEmptyPageData();
 	}
 }
 
@@ -115,4 +123,30 @@ export async function downloadPoster(url: string): Promise<ArrayBuffer | null> {
 		console.error('Error downloading poster:', error);
 		return null;
 	}
+}
+
+function normalizeFilmUrl(urlString: string): string | null {
+	try {
+		const parsed = new URL(urlString);
+		const segments = parsed.pathname.split('/').filter(Boolean);
+		const filmIndex = segments.indexOf('film');
+
+		if (filmIndex === -1 || !segments[filmIndex + 1]) {
+			return null;
+		}
+
+		const slug = segments[filmIndex + 1];
+		return `${parsed.protocol}//${parsed.host}/film/${slug}/`;
+	} catch (error) {
+		console.error(`Failed to normalise film URL for ${urlString}:`, error);
+		return null;
+	}
+}
+
+function createEmptyPageData(): MoviePageData {
+	return {
+		posterUrl: null,
+		metadata: { directors: [], genres: [], description: '', cast: [] },
+		movieUrl: null
+	};
 }

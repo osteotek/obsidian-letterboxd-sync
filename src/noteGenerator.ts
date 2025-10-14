@@ -3,7 +3,8 @@ import { LetterboxdMovie, MovieMetadata } from './types';
 export function generateMovieNote(
 	movie: LetterboxdMovie, 
 	posterPath?: string,
-	metadata?: MovieMetadata
+	metadata?: MovieMetadata,
+	resolvedUrl?: string
 ): string {
 	const lines: string[] = [];
 	
@@ -58,13 +59,7 @@ export function generateMovieNote(
 	}
 	
 	// Convert short URI to full Letterboxd URL
-	let letterboxdUrl = movie.letterboxdUri;
-	if (letterboxdUrl.includes('boxd.it')) {
-		// Extract the short code and construct full URL
-		const shortCode = letterboxdUrl.split('/').pop();
-		// We'll keep the original URI for now as we don't have the slug
-		letterboxdUrl = movie.letterboxdUri;
-	}
+	const letterboxdUrl = resolvedUrl ?? movie.letterboxdUri;
 	lines.push(`letterboxd: ${letterboxdUrl}`);
 	
 	lines.push('status: Watched');

@@ -79,12 +79,14 @@ async function importMovie(
 
 	let posterPath: string | undefined;
 	let metadata: MovieMetadata | undefined;
+	let resolvedMovieUrl: string | undefined;
 
 	// Fetch movie page data (poster and metadata) if enabled
 	if (movie.letterboxdUri) {
 		try {
 			const pageData = await fetchMoviePageData(movie.letterboxdUri);
 			metadata = pageData.metadata;
+			resolvedMovieUrl = pageData.movieUrl ?? undefined;
 			
 			// Download poster if enabled
 			if (settings.downloadPosters && pageData.posterUrl) {
@@ -108,7 +110,7 @@ async function importMovie(
 	}
 
 	// Generate note content with metadata
-	const noteContent = generateMovieNote(movie, posterPath, metadata);
+	const noteContent = generateMovieNote(movie, posterPath, metadata, resolvedMovieUrl);
 
 	// Create the note
 	await app.vault.create(filePath, noteContent);
