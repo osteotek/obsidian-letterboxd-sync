@@ -1,45 +1,75 @@
-import { LetterboxdMovie } from './types';
+import { LetterboxdMovie, MovieMetadata } from './types';
 
-export function generateMovieNote(movie: LetterboxdMovie, posterPath?: string): string {
+export function generateMovieNote(
+	movie: LetterboxdMovie, 
+	posterPath?: string,
+	metadata?: MovieMetadata
+): string {
 	const lines: string[] = [];
 	
-	// Title
-	lines.push(`# ${movie.name} (${movie.year})`);
-	lines.push('');
-	
-	// Poster image if available
-	if (posterPath) {
-		lines.push(`![[${posterPath}]]`);
-		lines.push('');
-	}
-	
-	// Metadata
-	lines.push('## Details');
-	lines.push('');
-	lines.push(`- **Title**: ${movie.name}`);
-	lines.push(`- **Year**: ${movie.year}`);
-	lines.push(`- **Letterboxd**: ${movie.letterboxdUri}`);
+	// YAML frontmatter
+	lines.push('---');
+	lines.push(`title: "${movie.name}"`);
+	lines.push(`year: ${movie.year}`);
 	
 	if (movie.rating) {
-		lines.push(`- **Rating**: ${movie.rating} ⭐`);
+		lines.push(`rating: ${movie.rating}`);
+	}
+	
+	if (posterPath) {
+		lines.push(`cover: "[[${posterPath}]]"`);
+	}
+	
+	// Directors from metadata
+	if (metadata && metadata.directors.length > 0) {
+		lines.push('directors:');
+		metadata.directors.forEach(director => {
+			lines.push(`  - ${director}`);
+		});
+	}
+	
+	// Genres from metadata
+	if (metadata && metadata.genres.length > 0) {
+		lines.push('genres:');
+		metadata.genres.forEach(genre => {
+			lines.push(`  - ${genre}`);
+		});
 	}
 	
 	if (movie.watchedDate) {
-		lines.push(`- **Watched Date**: ${movie.watchedDate}`);
+		lines.push(`watched: ${movie.watchedDate}`);
 	}
 	
 	if (movie.rewatch && movie.rewatch.toLowerCase() === 'yes') {
-		lines.push(`- **Rewatch**: Yes 🔁`);
+		lines.push('rewatch: true');
 	}
+	
+	// Convert short URI to full Letterboxd URL
+	let letterboxdUrl = movie.letterboxdUri;
+	if (letterboxdUrl.includes('boxd.it')) {
+		// Extract the short code and construct full URL
+		const shortCode = letterboxdUrl.split('/').pop();
+		// We'll keep the original URI for now as we don't have the slug
+		letterboxdUrl = movie.letterboxdUri;
+	}
+	lines.push(`letterboxd: ${letterboxdUrl}`);
+	
+	lines.push('status: Watched');
+	lines.push('---');
+	lines.push('');
+	
+	// Body content
+	lines.push(`# ${movie.name} (${movie.year})`);
+	lines.push('');
 	
 	if (movie.tags) {
 		const tags = movie.tags.split(',').map(t => t.trim()).filter(t => t);
 		if (tags.length > 0) {
-			lines.push(`- **Tags**: ${tags.map(t => `#${t.replace(/\s+/g, '-')}`).join(', ')}`);
+			lines.push(`Tags: ${tags.map(t => `#${t.replace(/\s+/g, '-')}`).join(', ')}`);
+			lines.push('');
 		}
 	}
 	
-	lines.push('');
 	lines.push('## Notes');
 	lines.push('');
 	lines.push('');

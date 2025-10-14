@@ -9,6 +9,11 @@ export interface LetterboxdMovie {
 	watchedDate: string;
 }
 
+export interface MovieMetadata {
+	directors: string[];
+	genres: string[];
+}
+
 export interface LetterboxdSyncSettings {
 	outputFolder: string;
 	downloadPosters: boolean;

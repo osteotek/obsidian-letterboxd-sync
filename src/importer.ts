@@ -1,7 +1,7 @@
 import { App, Notice, TFile, normalizePath } from 'obsidian';
-import { LetterboxdMovie, LetterboxdSyncSettings } from './types';
+import { LetterboxdMovie, LetterboxdSyncSettings, MovieMetadata } from './types';
 import { parseLetterboxdCSV } from './csvParser';
-import { fetchPosterUrl, downloadPoster } from './posterFetcher';
+import { fetchMoviePageData, downloadPoster } from './posterFetcher';
 import { generateMovieNote, sanitizeFileName } from './noteGenerator';
 
 export async function importLetterboxdCSV(
@@ -78,12 +78,16 @@ async function importMovie(
 	}
 
 	let posterPath: string | undefined;
+	let metadata: MovieMetadata | undefined;
 
-	// Download poster if enabled
-	if (settings.downloadPosters && movie.letterboxdUri) {
+	// Fetch movie page data (poster and metadata) if enabled
+	if (movie.letterboxdUri) {
 		try {
-			const posterUrl = await fetchPosterUrl(movie.letterboxdUri);
-			if (posterUrl) {
+			const pageData = await fetchMoviePageData(movie.letterboxdUri);
+			metadata = pageData.metadata;
+			
+			// Download poster if enabled
+			if (settings.downloadPosters && pageData.posterUrl) {
 				const posterFileName = sanitizeFileName(`${movie.name}_${movie.year}.jpg`);
 				posterPath = `${settings.posterFolder}/${posterFileName}`;
 				const posterFullPath = normalizePath(posterPath);
@@ -91,20 +95,20 @@ async function importMovie(
 				// Check if poster already exists
 				const existingPoster = app.vault.getAbstractFileByPath(posterFullPath);
 				if (!existingPoster) {
-					const posterData = await downloadPoster(posterUrl);
+					const posterData = await downloadPoster(pageData.posterUrl);
 					if (posterData) {
 						await app.vault.createBinary(posterFullPath, posterData);
 					}
 				}
 			}
 		} catch (error) {
-			console.error(`Failed to download poster for ${movie.name}:`, error);
-			// Continue without poster
+			console.error(`Failed to fetch data for ${movie.name}:`, error);
+			// Continue without poster and metadata
 		}
 	}
 
-	// Generate note content
-	const noteContent = generateMovieNote(movie, posterPath);
+	// Generate note content with metadata
+	const noteContent = generateMovieNote(movie, posterPath, metadata);
 
 	// Create the note
 	await app.vault.create(filePath, noteContent);

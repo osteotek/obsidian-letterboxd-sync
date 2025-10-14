@@ -7,6 +7,8 @@ Import your movie diary from Letterboxd into Obsidian! This plugin reads CSV exp
 - 📁 Import movies from Letterboxd CSV exports
 - 🎬 Create individual markdown notes for each movie
 - 🖼️ Automatically download and embed movie poster images
+- 🎭 Scrape directors and genres from Letterboxd pages
+- 📋 YAML frontmatter for Dataview compatibility
 - ⭐ Preserve all movie metadata (rating, tags, watched date, etc.)
 - �� Customizable output folders for notes and images
 - 🔄 Smart duplicate detection (won't reimport existing movies)
@@ -45,22 +47,28 @@ This matches the standard Letterboxd export format.
 
 ## Generated Note Format
 
-Each movie note includes:
+Each movie note includes structured YAML frontmatter and content:
 
 ```markdown
+---
+title: "Movie Title"
+year: Year
+rating: 4.5
+cover: "[[poster.jpg]]"
+directors:
+  - Director Name
+genres:
+  - Genre 1
+  - Genre 2
+watched: YYYY-MM-DD
+rewatch: true
+letterboxd: https://letterboxd.com/film/movie-slug/
+status: Watched
+---
+
 # Movie Title (Year)
 
-![[poster.jpg]]
-
-## Details
-
-- **Title**: Movie Title
-- **Year**: Year
-- **Letterboxd**: https://boxd.it/xxxxx
-- **Rating**: 4.5 ⭐
-- **Watched Date**: YYYY-MM-DD
-- **Rewatch**: Yes 🔁
-- **Tags**: #tag1, #tag2
+Tags: #tag1, #tag2
 
 ## Notes
 

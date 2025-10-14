@@ -1,31 +1,58 @@
-export async function fetchPosterUrl(letterboxdUri: string): Promise<string | null> {
+import { MovieMetadata } from './types';
+
+export interface MoviePageData {
+	posterUrl: string | null;
+	metadata: MovieMetadata;
+}
+
+export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePageData> {
 	try {
 		// Fetch the Letterboxd page
 		const response = await fetch(letterboxdUri);
 		if (!response.ok) {
 			console.error(`Failed to fetch ${letterboxdUri}: ${response.status}`);
-			return null;
+			return { posterUrl: null, metadata: { directors: [], genres: [] } };
 		}
 
 		const html = await response.text();
 		
-		// Look for the poster image in the HTML
-		// Letterboxd uses og:image meta tag for the poster
+		// Extract poster URL
+		let posterUrl: string | null = null;
 		const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
 		if (ogImageMatch && ogImageMatch[1]) {
-			return ogImageMatch[1];
+			posterUrl = ogImageMatch[1];
+		} else {
+			const posterMatch = html.match(/<img[^>]+class="[^"]*image[^"]*"[^>]+src="([^"]+)"/);
+			if (posterMatch && posterMatch[1]) {
+				posterUrl = posterMatch[1];
+			}
 		}
 
-		// Alternative: look for the poster div
-		const posterMatch = html.match(/<img[^>]+class="[^"]*image[^"]*"[^>]+src="([^"]+)"/);
-		if (posterMatch && posterMatch[1]) {
-			return posterMatch[1];
+		// Extract directors
+		const directors: string[] = [];
+		const directorMatches = html.matchAll(/<a[^>]+href="\/director\/[^"]+"[^>]*>([^<]+)<\/a>/g);
+		for (const match of directorMatches) {
+			if (match[1] && !directors.includes(match[1].trim())) {
+				directors.push(match[1].trim());
+			}
 		}
 
-		return null;
+		// Extract genres
+		const genres: string[] = [];
+		const genreMatches = html.matchAll(/<a[^>]+href="\/films\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/g);
+		for (const match of genreMatches) {
+			if (match[1] && !genres.includes(match[1].trim())) {
+				genres.push(match[1].trim());
+			}
+		}
+
+		return {
+			posterUrl,
+			metadata: { directors, genres }
+		};
 	} catch (error) {
-		console.error(`Error fetching poster from ${letterboxdUri}:`, error);
-		return null;
+		console.error(`Error fetching data from ${letterboxdUri}:`, error);
+		return { posterUrl: null, metadata: { directors: [], genres: [] } };
 	}
 }
 
