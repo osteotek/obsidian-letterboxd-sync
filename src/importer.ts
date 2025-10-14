@@ -190,7 +190,7 @@ function getFolderPath(filePath: string): string {
 	return parts.join('/');
 }
 
-function determineStatus(movie: LetterboxdMovie, sourceName?: string): string {
+export function determineStatus(movie: LetterboxdMovie, sourceName?: string): string {
 	const source = sourceName?.toLowerCase() ?? '';
 	if (source.endsWith('watchlist.csv')) {
 		return 'Want to Watch';
@@ -201,7 +201,7 @@ function determineStatus(movie: LetterboxdMovie, sourceName?: string): string {
 	return movie.watchedDate && movie.watchedDate.trim().length > 0 ? 'Watched' : 'Want to Watch';
 }
 
-function extractNotesSection(content: string): string | null {
+export function extractNotesSection(content: string): string | null {
 	const index = content.indexOf('## Notes');
 	if (index === -1) {
 		return null;
@@ -209,7 +209,7 @@ function extractNotesSection(content: string): string | null {
 	return content.slice(index);
 }
 
-function mergeWithExistingNotes(newContent: string, existingNotesSection: string | null): string {
+export function mergeWithExistingNotes(newContent: string, existingNotesSection: string | null): string {
 	if (!existingNotesSection) {
 		return newContent;
 	}
