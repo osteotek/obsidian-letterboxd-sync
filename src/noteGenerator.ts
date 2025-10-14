@@ -4,7 +4,8 @@ export function generateMovieNote(
 	movie: LetterboxdMovie, 
 	posterPath?: string,
 	metadata?: MovieMetadata,
-	resolvedUrl?: string
+	resolvedUrl?: string,
+	posterLink?: string
 ): string {
 	const lines: string[] = [];
 	
@@ -19,6 +20,8 @@ export function generateMovieNote(
 	
 	if (posterPath) {
 		lines.push(`cover: "[[${posterPath}]]"`);
+	} else if (posterLink) {
+		lines.push(`cover: "${posterLink}"`);
 	}
 	
 	// Description from metadata
@@ -73,6 +76,9 @@ export function generateMovieNote(
 	// Body content
 	if (posterPath) {
 		lines.push(`![[${posterPath}]]`);
+		lines.push('');
+	} else if (posterLink) {
+		lines.push(`![${escapeYamlString(movie.name)} Poster](${posterLink})`);
 		lines.push('');
 	}
 	

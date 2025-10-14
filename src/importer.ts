@@ -78,6 +78,7 @@ async function importMovie(
 	}
 
 	let posterPath: string | undefined;
+	let posterLink: string | undefined;
 	let metadata: MovieMetadata | undefined;
 	let resolvedMovieUrl: string | undefined;
 
@@ -88,6 +89,10 @@ async function importMovie(
 				metadata = pageData.metadata;
 				resolvedMovieUrl = pageData.movieUrl ?? undefined;
 			
+			if (pageData.posterUrl) {
+				posterLink = pageData.posterUrl;
+			}
+
 			// Download poster if enabled
 			if (settings.downloadPosters && pageData.posterUrl) {
 				const posterFileName = sanitizeFileName(`${movie.name}_${movie.year}.jpg`);
@@ -116,8 +121,14 @@ async function importMovie(
 		}
 	}
 
-	// Generate note content with metadata
-	const noteContent = generateMovieNote(movie, posterPath, metadata, resolvedMovieUrl);
+	// Generate note content with metadata (poster path or external link based on settings)
+	const noteContent = generateMovieNote(
+		movie,
+		settings.downloadPosters ? posterPath : undefined,
+		metadata,
+		resolvedMovieUrl,
+		posterLink
+	);
 
 	// Create the note
 	await app.vault.create(filePath, noteContent);

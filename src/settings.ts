@@ -4,7 +4,7 @@ import { LetterboxdSyncSettings } from './types';
 
 export const DEFAULT_SETTINGS: LetterboxdSyncSettings = {
 	outputFolder: 'Letterboxd',
-	downloadPosters: true,
+	downloadPosters: false,
 	posterFolder: 'Letterboxd/attachments',
 	templateFormat: 'default'
 };

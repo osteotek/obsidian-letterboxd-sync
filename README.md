@@ -32,7 +32,7 @@ Bring your Letterboxd diary into Obsidian with one command. The plugin reads Let
 | Option | Default | Description |
 | --- | --- | --- |
 | Output folder | `Letterboxd` | Destination for generated movie notes. |
-| Download posters | Enabled | Toggle automatic poster downloads. |
+| Download posters | Disabled | Toggle automatic poster downloads. |
 | Poster folder | `Letterboxd/attachments` | Storage location for poster images. |
 
 The plugin creates folders on demand and reuses existing posters when present.
