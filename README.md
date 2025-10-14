@@ -24,7 +24,7 @@ Bring your Letterboxd diary into Obsidian with one command. The plugin reads Let
    Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/letterboxd-sync/`, reload Obsidian, and enable the plugin.
 
 3. **Run the import**  
-   Open the Command Palette → “Import Letterboxd CSV” → choose your CSV. Progress appears in the modal; posters land in `Letterboxd/attachments/`.
+   Open the Command Palette → “Import Letterboxd CSV” → choose your CSV. Progress appears in the modal; posters land in `Letterboxd/attachments/`. (Supported files: `diary.csv`, `watched.csv`, `watchlist.csv`.)
 
 ---
 

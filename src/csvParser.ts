@@ -12,6 +12,18 @@ export function parseLetterboxdCSV(csvContent: string): LetterboxdMovie[] {
 		headerIndex.set(field.trim(), index);
 	});
 
+	const requiredHeaders = ['Name', 'Year', 'Letterboxd URI'];
+	for (const header of requiredHeaders) {
+		if (!headerIndex.has(header)) {
+			throw new Error('Unsupported CSV format. Use diary.csv, watched.csv, or watchlist.csv from Letterboxd.');
+		}
+	}
+
+	const hasAnyDate = headerIndex.has('Watched Date') || headerIndex.has('Date');
+	if (!hasAnyDate) {
+		throw new Error('CSV is missing date information. Use diary.csv, watched.csv, or watchlist.csv from Letterboxd.');
+	}
+
 	const dataLines = lines.slice(1);
 	const movies: LetterboxdMovie[] = [];
 
@@ -33,7 +45,7 @@ export function parseLetterboxdCSV(csvContent: string): LetterboxdMovie[] {
 			rating: getField(fields, headerIndex, 'Rating'),
 			rewatch: getField(fields, headerIndex, 'Rewatch'),
 			tags: getField(fields, headerIndex, 'Tags'),
-			watchedDate: getField(fields, headerIndex, 'Watched Date') || getField(fields, headerIndex, 'Date')
+			watchedDate: getField(fields, headerIndex, 'Watched Date')
 		});
 	}
 

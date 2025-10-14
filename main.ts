@@ -67,12 +67,20 @@ class ImportModal extends Modal {
 			? `Posters will be saved to ${this.plugin.settings.posterFolder || 'the configured attachments folder'}.`
 			: 'Posters will remain on Letterboxd; notes will link to the online image.';
 		summaryList.createEl('li', { text: posterSummary });
-		summaryList.createEl('li', { text: 'Status rules: watched.csv → Watched, watchlist.csv → Want to Watch, other CSVs use the watched date.' });
+		summaryList.createEl('li', {
+			text: 'Status rules: watched.csv → Watched, watchlist.csv → Want to Watch, other CSVs use the watched date.'
+		});
+		summaryList.createEl('li', {
+			text: 'Supported files: diary.csv, watched.csv, watchlist.csv.'
+		});
 
 		const fileSetting = contentEl.createDiv({ cls: 'setting-item' });
 		const fileInfo = fileSetting.createDiv({ cls: 'setting-item-info' });
 		fileInfo.createEl('div', { text: 'CSV file' });
-		fileInfo.createEl('div', { cls: 'setting-item-description', text: 'Select the Letterboxd CSV file you want to import.' });
+		fileInfo.createEl('div', {
+			cls: 'setting-item-description',
+			text: 'Select diary.csv, watched.csv, or watchlist.csv from the Letterboxd export ZIP.'
+		});
 		const fileControl = fileSetting.createDiv({ cls: 'setting-item-control' });
 		const fileInput = fileControl.createEl('input', {
 			attr: {
@@ -94,6 +102,9 @@ class ImportModal extends Modal {
 			importButton.disabled = !hasFile;
 			if (hasFile) {
 				importButton.setText('Import');
+				if (!isSupportedCsv(fileInput.files![0]!.name)) {
+					new Notice('Unsupported CSV. Use diary.csv, watched.csv, or watchlist.csv.');
+				}
 			}
 		});
 
@@ -101,6 +112,11 @@ class ImportModal extends Modal {
 			const file = fileInput.files?.[0];
 			if (!file) {
 				new Notice('Please select a CSV file');
+				return;
+			}
+
+			if (!isSupportedCsv(file.name)) {
+				new Notice('Unsupported CSV. Use diary.csv, watched.csv, or watchlist.csv.');
 				return;
 			}
 
@@ -144,4 +160,9 @@ class ImportModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 	}
+}
+
+function isSupportedCsv(fileName: string): boolean {
+	const lower = fileName.toLowerCase();
+	return lower.endsWith('diary.csv') || lower.endsWith('watched.csv') || lower.endsWith('watchlist.csv');
 }
