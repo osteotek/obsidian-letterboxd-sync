@@ -58,8 +58,8 @@ export function generateMovieNote(
 		lines.push('rewatch: true');
 	}
 	
-	// Convert short URI to full Letterboxd URL
-	const letterboxdUrl = resolvedUrl ?? movie.letterboxdUri;
+	// Use resolved URL when available, otherwise normalize diary URLs when possible
+	const letterboxdUrl = resolvedUrl ?? normalizeLetterboxdUrl(movie.letterboxdUri);
 	lines.push(`letterboxd: ${letterboxdUrl}`);
 	
 	lines.push('status: Watched');
@@ -67,21 +67,9 @@ export function generateMovieNote(
 	lines.push('');
 	
 	// Body content
-	lines.push(`# ${movie.name} (${movie.year})`);
-	lines.push('');
-	
-	// Include poster image in body (outside frontmatter)
 	if (posterPath) {
 		lines.push(`![[${posterPath}]]`);
 		lines.push('');
-	}
-	
-	if (movie.tags) {
-		const tags = movie.tags.split(',').map(t => t.trim()).filter(t => t);
-		if (tags.length > 0) {
-			lines.push(`Tags: ${tags.map(t => `#${t.replace(/\s+/g, '-')}`).join(', ')}`);
-			lines.push('');
-		}
 	}
 	
 	lines.push('## Notes');
@@ -97,4 +85,22 @@ export function sanitizeFileName(name: string): string {
 		.replace(/[\\/:*?"<>|]/g, '-')
 		.replace(/\s+/g, ' ')
 		.trim();
+}
+
+function normalizeLetterboxdUrl(urlString: string): string {
+	try {
+		const parsed = new URL(urlString);
+		if (!parsed.hostname.includes('letterboxd.com')) {
+			return urlString;
+		}
+		const segments = parsed.pathname.split('/').filter(Boolean);
+		const filmIndex = segments.indexOf('film');
+		if (filmIndex !== -1 && segments[filmIndex + 1]) {
+			const slug = segments[filmIndex + 1];
+			return `${parsed.protocol}//${parsed.host}/film/${slug}/`;
+		}
+		return urlString;
+	} catch {
+		return urlString;
+	}
 }

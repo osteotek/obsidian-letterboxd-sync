@@ -1,0 +1,56 @@
+import { describe, expect, it } from 'vitest';
+import { generateMovieNote } from '../src/noteGenerator';
+import type { LetterboxdMovie, MovieMetadata } from '../src/types';
+
+describe('noteGenerator', () => {
+	it('uses canonical Letterboxd URL in note frontmatter when resolved URL unavailable', () => {
+		const movie: LetterboxdMovie = {
+			date: '2024-01-01',
+			name: 'Example Film',
+			year: '2024',
+			letterboxdUri: 'https://letterboxd.com/example-user/film/example-film/',
+			rating: '4',
+			rewatch: '',
+			tags: '',
+			watchedDate: '2024-01-02'
+		};
+
+		const metadata: MovieMetadata = {
+			directors: [],
+			genres: [],
+			description: '',
+			cast: []
+		};
+
+		const note = generateMovieNote(movie, undefined, metadata);
+
+		expect(note).toContain('letterboxd: https://letterboxd.com/film/example-film/');
+		expect(note).not.toContain('# Example Film (2024)');
+		expect(note).toContain('## Notes');
+	});
+
+	it('renders poster image outside of frontmatter when poster path provided', () => {
+		const movie: LetterboxdMovie = {
+			date: '2024-01-01',
+			name: 'Example Film',
+			year: '2024',
+			letterboxdUri: 'https://letterboxd.com/film/example-film/',
+			rating: '',
+			rewatch: '',
+			tags: '',
+			watchedDate: ''
+		};
+
+		const metadata: MovieMetadata = {
+			directors: [],
+			genres: [],
+			description: '',
+			cast: []
+		};
+
+		const note = generateMovieNote(movie, 'Letterboxd/posters/example.jpg', metadata);
+
+		const body = note.split('---\n').pop() ?? '';
+		expect(body).toContain('![[Letterboxd/posters/example.jpg]]');
+	});
+});
