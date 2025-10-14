@@ -61,6 +61,10 @@ directors:
 genres:
   - Genre 1
   - Genre 2
+cast:
+  - Actor 1
+  - Actor 2
+  - Actor 3
 watched: YYYY-MM-DD
 rewatch: true
 letterboxd: https://letterboxd.com/film/movie-slug/

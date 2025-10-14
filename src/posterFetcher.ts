@@ -11,7 +11,7 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		const response = await fetch(letterboxdUri);
 		if (!response.ok) {
 			console.error(`Failed to fetch ${letterboxdUri}: ${response.status}`);
-			return { posterUrl: null, metadata: { directors: [], genres: [], description: '' } };
+			return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
 		}
 
 		const html = await response.text();
@@ -59,13 +59,22 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 			}
 		}
 
+		// Extract cast members
+		const cast: string[] = [];
+		const castMatches = html.matchAll(/<a[^>]+href="\/actor\/[^"]+"[^>]*>([^<]+)<\/a>/g);
+		for (const match of castMatches) {
+			if (match[1] && !cast.includes(match[1].trim())) {
+				cast.push(match[1].trim());
+			}
+		}
+
 		return {
 			posterUrl,
-			metadata: { directors, genres, description }
+			metadata: { directors, genres, description, cast }
 		};
 	} catch (error) {
 		console.error(`Error fetching data from ${letterboxdUri}:`, error);
-		return { posterUrl: null, metadata: { directors: [], genres: [], description: '' } };
+		return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
 	}
 }
 

@@ -13,6 +13,7 @@ export interface MovieMetadata {
 	directors: string[];
 	genres: string[];
 	description: string;
+	cast: string[];
 }
 
 export interface LetterboxdSyncSettings {

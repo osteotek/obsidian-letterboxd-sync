@@ -24,6 +24,10 @@ directors:
 genres:
   - Science Fiction
   - Action
+cast:
+  - Keanu Reeves
+  - Laurence Fishburne
+  - Carrie-Anne Moss
 watched: 2024-10-09
 letterboxd: https://boxd.it/2a9q
 status: Watched
@@ -43,7 +47,7 @@ Tags: #sci-fi, #action
 ## Note Features
 
 ### YAML Frontmatter
-The plugin generates structured YAML frontmatter with all movie metadata, making notes compatible with Dataview and other Obsidian plugins. Includes title, year, rating, cover, description, directors, genres, watched date, rewatch status, and Letterboxd link.
+The plugin generates structured YAML frontmatter with all movie metadata, making notes compatible with Dataview and other Obsidian plugins. Includes title, year, rating, cover, description, directors, genres, cast, watched date, rewatch status, and Letterboxd link.
 
 ### Embedded Images
 Poster images are automatically downloaded and embedded using Obsidian's `![[filename]]` syntax.

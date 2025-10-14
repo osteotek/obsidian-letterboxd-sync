@@ -41,6 +41,14 @@ export function generateMovieNote(
 		});
 	}
 	
+	// Cast from metadata
+	if (metadata && metadata.cast.length > 0) {
+		lines.push('cast:');
+		metadata.cast.forEach(actor => {
+			lines.push(`  - ${actor}`);
+		});
+	}
+	
 	if (movie.watchedDate) {
 		lines.push(`watched: ${movie.watchedDate}`);
 	}
