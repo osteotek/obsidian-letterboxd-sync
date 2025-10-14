@@ -68,7 +68,7 @@ class ImportModal extends Modal {
 			: 'Posters will remain on Letterboxd; notes will link to the online image.';
 		summaryList.createEl('li', { text: posterSummary });
 		summaryList.createEl('li', {
-			text: 'Status rules: watched.csv → Watched, watchlist.csv → Want to Watch, other CSVs use the watched date.'
+			text: 'Status rules: diary.csv or watched.csv → Watched, watchlist.csv → Want to Watch.'
 		});
 		summaryList.createEl('li', {
 			text: 'Supported files: diary.csv, watched.csv, watchlist.csv.'
