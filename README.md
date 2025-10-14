@@ -53,6 +53,7 @@ directors:
 genres:
   - Science Fiction
   - Action
+averageRating: 4.3
 cast:
   - Keanu Reeves
   - Laurence Fishburne

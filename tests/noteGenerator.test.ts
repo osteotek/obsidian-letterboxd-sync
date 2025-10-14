@@ -19,13 +19,15 @@ describe('noteGenerator', () => {
 			directors: [],
 			genres: [],
 			description: 'Example description',
-			cast: []
+			cast: [],
+			averageRating: '4.2'
 		};
 
 		const note = generateMovieNote(movie, undefined, metadata);
 
 		expect(note).toContain('letterboxd: https://letterboxd.com/film/example-film/');
 		expect(note).toContain('description: "Example description"');
+		expect(note).toContain('averageRating: 4.2');
 		expect(note).not.toContain('# Example Film (2024)');
 		expect(note).toContain('## Notes');
 	});

@@ -7,6 +7,7 @@ export interface JsonLdMetadata {
 	genres: string[];
 	cast: string[];
 	movieUrl: string | null;
+	averageRating: string | null;
 }
 
 /**
@@ -51,6 +52,7 @@ export function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata |
 	const cast = extractPersonNames(data.actors ?? data.actor ?? data.cast);
 	const genres = extractStrings(data.genre);
 	const description = typeof data.description === 'string' ? data.description.trim() : null;
+	const averageRating = extractAggregateRatingValue(data.aggregateRating);
 	const posterUrl = ensureAbsoluteUrl(typeof data.image === 'string' ? data.image : null, baseUrl);
 	const movieUrl = ensureAbsoluteUrl(typeof data.url === 'string' ? data.url : null, baseUrl);
 
@@ -60,7 +62,8 @@ export function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata |
 		directors,
 		genres,
 		cast,
-		movieUrl
+		movieUrl,
+		averageRating
 	};
 }
 
@@ -80,6 +83,25 @@ export function extractDescriptionFromHtml(html: string | null): string | null {
 	const metaDescMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
 	if (metaDescMatch && metaDescMatch[1]) {
 		return metaDescMatch[1].trim();
+	}
+
+	return null;
+}
+
+function extractAggregateRatingValue(value: unknown): string | null {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const ratingObj = value as { ratingValue?: unknown };
+	const ratingValue = ratingObj.ratingValue;
+
+	if (typeof ratingValue === 'number') {
+		return ratingValue.toString();
+	}
+
+	if (typeof ratingValue === 'string') {
+		return ratingValue.trim() || null;
 	}
 
 	return null;

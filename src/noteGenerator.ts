@@ -25,6 +25,10 @@ export function generateMovieNote(
 	if (metadata && metadata.description) {
 		lines.push(`description: "${escapeYamlString(metadata.description)}"`);
 	}
+
+	if (metadata && metadata.averageRating) {
+		lines.push(`averageRating: ${metadata.averageRating}`);
+	}
 	
 	// Directors from metadata
 	if (metadata && metadata.directors.length > 0) {

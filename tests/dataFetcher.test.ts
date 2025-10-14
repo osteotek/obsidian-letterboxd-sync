@@ -66,11 +66,12 @@ describe('dataFetcher (unit)', () => {
 								{"@type":"Person","name":"Actor Eleven"},
 								{"@type":"Person","name":"Actor Twelve"}
 							],
-							"genre": ["Drama", "Science Fiction"],
-							"description": "Example description.",
-							"url": "https://letterboxd.com/film/example-film/"
-						}
-					</script>
+					"genre": ["Drama", "Science Fiction"],
+					"description": "Example description.",
+					"url": "https://letterboxd.com/film/example-film/",
+					"aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.2"}
+					}
+				</script>
 					<meta property="og:image" content="https://images.example/cover.jpg" />
 					<meta property="og:description" content="Fallback description" />
 				</head>
@@ -107,6 +108,7 @@ describe('dataFetcher (unit)', () => {
 		expect(result.metadata.genres).toContain('Science Fiction');
 		expect(result.metadata.cast).toContain('Actor Two');
 		expect(result.metadata.cast.length).toBe(10);
+		expect(result.metadata.averageRating).toBe('4.2');
 	});
 
 	it('falls back to og description when JSON-LD description missing', async () => {
@@ -119,8 +121,9 @@ describe('dataFetcher (unit)', () => {
 							"image": "https://images.example/film-poster.jpg",
 							"director": [{"@type":"Person","name":"Director Name"}],
 							"actors": [{"@type":"Person","name":"Actor One"}],
-							"genre": ["Drama"],
-							"url": "https://letterboxd.com/film/example-film/"
+					"genre": ["Drama"],
+					"url": "https://letterboxd.com/film/example-film/",
+					"aggregateRating": {"@type": "AggregateRating", "ratingValue": 3.8}
 						}
 					</script>
 					<meta property="og:description" content="OG description" />
@@ -161,21 +164,22 @@ describe('dataFetcher (unit)', () => {
 	});
 
 	it('normalizes diary film URL before fetching', async () => {
-		const html = `
-			<html>
-				<head>
-					<script type="application/ld+json">
-						{
-							"@type": "Movie",
-							"image": "https://images.example/film-poster.jpg",
-							"director": [{"@type":"Person","name":"Director Name"}],
-							"genre": ["Drama"],
-							"url": "https://letterboxd.com/film/example-film/"
-						}
-					</script>
-				</head>
-			</html>
-		`;
+	const html = `
+		<html>
+			<head>
+				<script type="application/ld+json">
+					{
+						"@type": "Movie",
+						"image": "https://images.example/film-poster.jpg",
+						"director": [{"@type":"Person","name":"Director Name"}],
+						"genre": ["Drama"],
+						"url": "https://letterboxd.com/film/example-film/",
+						"aggregateRating": {"@type": "AggregateRating", "ratingValue": 3.8}
+					}
+				</script>
+			</head>
+		</html>
+	`;
 
 		queueResponses([
 			{
@@ -188,9 +192,10 @@ describe('dataFetcher (unit)', () => {
 
 		expect(requestUrlMock).toHaveBeenCalledTimes(1);
 		const firstCallParam = requestUrlMock.mock.calls[0]?.[0] as { url?: string } | undefined;
-		expect(firstCallParam?.url).toBe('https://letterboxd.com/film/example-film/');
-		expect(result.movieUrl).toBe('https://letterboxd.com/film/example-film/');
-		expect(result.posterUrl).toBe('https://images.example/film-poster.jpg');
+	expect(firstCallParam?.url).toBe('https://letterboxd.com/film/example-film/');
+	expect(result.movieUrl).toBe('https://letterboxd.com/film/example-film/');
+	expect(result.posterUrl).toBe('https://images.example/film-poster.jpg');
+	expect(result.metadata.averageRating).toBe('3.8');
 	});
 });
 
