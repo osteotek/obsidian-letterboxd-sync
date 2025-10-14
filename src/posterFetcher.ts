@@ -7,10 +7,35 @@ export interface MoviePageData {
 
 export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePageData> {
 	try {
-		// Fetch the Letterboxd page
-		const response = await fetch(letterboxdUri);
+		// If the URI is a boxd.it short URL, we need to follow it to get the actual movie page
+		let moviePageUrl = letterboxdUri;
+		
+		if (letterboxdUri.includes('boxd.it')) {
+			// Fetch the short URL to get redirected to the user diary page
+			const response = await fetch(letterboxdUri, { redirect: 'follow' });
+			if (!response.ok) {
+				console.error(`Failed to fetch ${letterboxdUri}: ${response.status}`);
+				return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
+			}
+			
+			// Get the final URL after redirect (e.g., https://letterboxd.com/username/film/movie-name/)
+			const redirectedUrl = response.url;
+			
+			// Extract the movie slug by removing the username part
+			// Pattern: https://letterboxd.com/username/film/movie-slug/ -> https://letterboxd.com/film/movie-slug/
+			const movieSlugMatch = redirectedUrl.match(/letterboxd\.com\/[^\/]+\/(film\/[^\/]+\/?)$/);
+			if (movieSlugMatch) {
+				moviePageUrl = `https://letterboxd.com/${movieSlugMatch[1]}`;
+			} else {
+				console.error(`Could not extract movie page from: ${redirectedUrl}`);
+				return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
+			}
+		}
+		
+		// Fetch the actual movie page
+		const response = await fetch(moviePageUrl);
 		if (!response.ok) {
-			console.error(`Failed to fetch ${letterboxdUri}: ${response.status}`);
+			console.error(`Failed to fetch movie page ${moviePageUrl}: ${response.status}`);
 			return { posterUrl: null, metadata: { directors: [], genres: [], description: '', cast: [] } };
 		}
 
