@@ -50,6 +50,7 @@ describe('posterFetcher (unit)', () => {
 							"url": "https://letterboxd.com/film/example-film/"
 						}
 					</script>
+					<meta property="og:image" content="https://images.example/cover.jpg" />
 					<meta property="og:description" content="Fallback description" />
 				</head>
 				<body>
@@ -63,7 +64,7 @@ describe('posterFetcher (unit)', () => {
 		queueResponses([
 			{
 				status: 301,
-				headers: { location: 'https://letterboxd.com/member-name/film/example-film/' }
+				headers: { Location: 'https://letterboxd.com/member-name/film/example-film/' }
 			},
 			{
 				status: 200,
@@ -92,7 +93,7 @@ describe('posterFetcher (unit)', () => {
 		queueResponses([
 			{
 				status: 302,
-				headers: { location: 'https://cdn.example/poster.jpg' }
+				headers: { Location: 'https://cdn.example/poster.jpg' }
 			},
 			{
 				status: 200,
@@ -105,6 +106,39 @@ describe('posterFetcher (unit)', () => {
 		expect(requestUrlMock).toHaveBeenCalledTimes(2);
 		expect(data).toBeInstanceOf(ArrayBuffer);
 		expect((data as ArrayBuffer).byteLength).toBe(3);
+	});
+
+	it('normalizes diary film URL before fetching', async () => {
+		const html = `
+			<html>
+				<head>
+					<script type="application/ld+json">
+						{
+							"@type": "Movie",
+							"image": "https://images.example/film-poster.jpg",
+							"director": [{"@type":"Person","name":"Director Name"}],
+							"genre": ["Drama"],
+							"url": "https://letterboxd.com/film/example-film/"
+						}
+					</script>
+				</head>
+			</html>
+		`;
+
+		queueResponses([
+			{
+				status: 200,
+				text: html
+			}
+		]);
+
+		const result = await fetchMoviePageData('https://letterboxd.com/someuser/film/example-film/');
+
+		expect(requestUrlMock).toHaveBeenCalledTimes(1);
+		const firstCallParam = requestUrlMock.mock.calls[0]?.[0] as { url?: string } | undefined;
+		expect(firstCallParam?.url).toBe('https://letterboxd.com/film/example-film/');
+		expect(result.movieUrl).toBe('https://letterboxd.com/film/example-film/');
+		expect(result.posterUrl).toBe('https://images.example/film-poster.jpg');
 	});
 });
 

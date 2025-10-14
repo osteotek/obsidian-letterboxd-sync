@@ -93,10 +93,12 @@ async function importMovie(
 				const posterFileName = sanitizeFileName(`${movie.name}_${movie.year}.jpg`);
 				posterPath = `${settings.posterFolder}/${posterFileName}`;
 				const posterFullPath = normalizePath(posterPath);
+				const posterFolderPath = getFolderPath(posterFullPath);
 
 				// Check if poster already exists
 				const existingPoster = app.vault.getAbstractFileByPath(posterFullPath);
 				if (!existingPoster) {
+					await ensureFolderExists(app, posterFolderPath);
 					const posterData = await downloadPoster(pageData.posterUrl);
 					if (posterData) {
 						await app.vault.createBinary(posterFullPath, posterData);
@@ -117,12 +119,37 @@ async function importMovie(
 }
 
 async function ensureFolderExists(app: App, folderPath: string): Promise<void> {
-	const folder = app.vault.getAbstractFileByPath(folderPath);
-	if (!folder) {
-		await app.vault.createFolder(folderPath);
+	const normalizedPath = normalizePath(folderPath);
+	if (!normalizedPath) {
+		return;
+	}
+
+	const segments = normalizedPath.split('/').filter(Boolean);
+	let currentPath = '';
+
+	for (const segment of segments) {
+		currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+		const existing = app.vault.getAbstractFileByPath(currentPath);
+
+		if (!existing) {
+			await app.vault.createFolder(currentPath);
+			continue;
+		}
+
+		if (!(existing instanceof TFile)) {
+			continue;
+		}
+
+		throw new Error(`Cannot create folder ${currentPath}: a file with the same name exists.`);
 	}
 }
 
 function sleep(ms: number): Promise<void> {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getFolderPath(filePath: string): string {
+	const parts = normalizePath(filePath).split('/');
+	parts.pop();
+	return parts.join('/');
 }

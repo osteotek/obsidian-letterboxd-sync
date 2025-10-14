@@ -12,99 +12,74 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		let moviePageUrl = letterboxdUri;
 		let html: string | null = null;
 		let canonicalUrl: string | null = null;
+
+		const directNormalizedUrl = normalizeFilmUrl(letterboxdUri);
+		if (directNormalizedUrl) {
+			moviePageUrl = directNormalizedUrl;
+			canonicalUrl = directNormalizedUrl;
+		}
 		
 		if (letterboxdUri.includes('boxd.it')) {
 			const shortResult = await requestTextWithRedirect(letterboxdUri);
-			
-			const normalizedUrl = normalizeFilmUrl(shortResult.url);
-			
-			if (!normalizedUrl) {
-				console.error(`Could not extract movie page from: ${shortResult.url}`);
-				return createEmptyPageData();
+			let expandedUrl = shortResult.url;
+		let expandedHtml = shortResult.text;
+
+			if (!expandedHtml) {
+				const finalResult = await requestTextWithRedirect(expandedUrl);
+				expandedUrl = finalResult.url;
+				expandedHtml = finalResult.text;
 			}
 
-			moviePageUrl = normalizedUrl;
-			canonicalUrl = normalizedUrl;
-			if (normalizedUrl === shortResult.url) {
-				html = shortResult.text;
-			}
-		}
-		
-		if (!html) {
-			const pageResult = await requestTextWithRedirect(moviePageUrl);
-			html = pageResult.text;
-			if (!canonicalUrl) {
-				canonicalUrl = normalizeFilmUrl(pageResult.url) ?? normalizeFilmUrl(moviePageUrl) ?? pageResult.url;
-			}
-		} else if (!canonicalUrl) {
-			canonicalUrl = normalizeFilmUrl(moviePageUrl) ?? moviePageUrl;
-		}
-		
-		// Extract poster URL
-		let posterUrl: string | null = null;
-		let jsonPosterUrl: string | null = null;
-		let description = '';
-		const directors: string[] = [];
-		const genres: string[] = [];
-		const cast: string[] = [];
+		const normalizedUrl = normalizeFilmUrl(expandedUrl) ?? extractCanonicalUrlFromHtml(expandedHtml, expandedUrl) ?? null;
 
-		const jsonLdData = parseJsonLdData(html, moviePageUrl);
-		if (jsonLdData) {
-			jsonPosterUrl = jsonLdData.posterUrl;
-			if (jsonLdData.description) {
-				description = jsonLdData.description;
-			}
-			jsonLdData.directors?.forEach(name => addUnique(directors, name));
-			jsonLdData.genres?.forEach(genre => addUnique(genres, genre));
-			jsonLdData.cast?.forEach(actor => addUnique(cast, actor));
-			if (jsonLdData.movieUrl) {
-				canonicalUrl = jsonLdData.movieUrl;
-			}
-		}
-
-		if (!posterUrl) {
-			const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
-			if (ogImageMatch && ogImageMatch[1]) {
-				posterUrl = ogImageMatch[1];
-			} else {
-				const posterMatch = html.match(/<img[^>]+class="[^"]*image[^"]*"[^>]+src="([^"]+)"/);
-				if (posterMatch && posterMatch[1]) {
-					posterUrl = posterMatch[1];
+			if (normalizedUrl) {
+				moviePageUrl = normalizedUrl;
+				canonicalUrl = normalizedUrl;
+				if (normalizedUrl === expandedUrl) {
+					html = expandedHtml;
 				}
+			} else {
+			console.warn(`Falling back to expanded URL for Letterboxd short link: ${expandedUrl}`);
+			moviePageUrl = expandedUrl;
+			canonicalUrl = extractCanonicalUrlFromHtml(expandedHtml, expandedUrl) ?? expandedUrl;
+				html = expandedHtml;
 			}
 		}
-		if (!posterUrl && jsonPosterUrl) {
-			posterUrl = jsonPosterUrl;
+		
+	if (!html) {
+		const pageResult = await requestTextWithRedirect(moviePageUrl);
+		html = pageResult.text;
+		if (!canonicalUrl) {
+			canonicalUrl = normalizeFilmUrl(pageResult.url)
+				?? extractCanonicalUrlFromHtml(html, pageResult.url)
+				?? normalizeFilmUrl(moviePageUrl)
+				?? pageResult.url;
 		}
-
-		// Extract description from og:description meta tag
-		const ogDescMatch = html.match(/<meta property="og:description" content="([^"]+)"/);
-		if (ogDescMatch && ogDescMatch[1]) {
-			description = description || ogDescMatch[1].trim();
-		} else if (!description) {
-			// Fallback: try meta name="description"
-			const descMatch = html.match(/<meta name="description" content="([^"]+)"/);
-			if (descMatch && descMatch[1]) {
-				description = descMatch[1].trim();
-			}
+	} else if (!canonicalUrl) {
+		canonicalUrl = normalizeFilmUrl(moviePageUrl)
+			?? extractCanonicalUrlFromHtml(html, moviePageUrl)
+			?? moviePageUrl;
+	}
+		
+		const jsonLdData = html ? parseJsonLdData(html, moviePageUrl) : null;
+		if (!jsonLdData) {
+			console.warn(`JSON-LD metadata missing for ${moviePageUrl}`);
 		}
-
-		// Extract directors
-		const directorMatches = html.matchAll(/<a[^>]+href="\/director\/[^"]+"[^>]*>([^<]+)<\/a>/g);
-		for (const match of directorMatches) {
-			addUnique(directors, match[1]);
+		const posterUrl = jsonLdData?.posterUrl ?? null;
+		const description = jsonLdData?.description ?? '';
+		const directors = jsonLdData?.directors ?? [];
+		const genres = jsonLdData?.genres ?? [];
+		const cast = jsonLdData?.cast ?? [];
+		if (jsonLdData?.movieUrl) {
+			canonicalUrl = jsonLdData.movieUrl;
+			console.debug(`Canonical URL from JSON-LD: ${canonicalUrl}`);
+		} else if (posterUrl) {
+			console.debug(`Poster found without canonical URL for ${moviePageUrl}`);
 		}
-
-		// Extract genres
-		const genreMatches = html.matchAll(/<a[^>]+href="\/films\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/g);
-		for (const match of genreMatches) {
-			addUnique(genres, match[1]);
-		}
-
-		// Extract cast members
-		const castMatches = html.matchAll(/<a[^>]+href="\/actor\/[^"]+"[^>]*>([^<]+)<\/a>/g);
-		for (const match of castMatches) {
-			addUnique(cast, match[1]);
+		if (!posterUrl) {
+			console.warn(`JSON-LD metadata missing poster image for ${moviePageUrl}`);
+		} else {
+			console.debug(`Poster URL from JSON-LD: ${posterUrl}`);
 		}
 
 		return {
@@ -138,8 +113,9 @@ interface JsonLdMetadata {
 }
 
 function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata | null {
-	const scriptMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i);
+	const scriptMatch = html.match(/<script[^>]+type=\"application\/ld\+json\"[^>]*>([\s\S]*?)<\/script>/i);
 	if (!scriptMatch || !scriptMatch[1]) {
+		console.warn('No JSON-LD script tag found on page');
 		return null;
 	}
 
@@ -148,6 +124,7 @@ function parseJsonLdData(html: string, baseUrl: string): JsonLdMetadata | null {
 		.trim();
 
 	if (!sanitizedJson) {
+		console.warn('JSON-LD script tag was empty after sanitization');
 		return null;
 	}
 
@@ -272,17 +249,18 @@ const HTML_HEADERS = {
 async function requestTextWithRedirect(url: string, maxRedirects = 5): Promise<{ url: string; text: string }> {
 	let currentUrl = url;
 	for (let i = 0; i <= maxRedirects; i++) {
-		const response = await requestUrl({
-			url: currentUrl,
-			method: 'GET',
-			headers: HTML_HEADERS,
-			throw: false
-		});
+			const response = await requestUrl({
+				url: currentUrl,
+				method: 'GET',
+				headers: HTML_HEADERS,
+				throw: false
+			});
 
-		if (isRedirect(response.status) && response.headers.location) {
-			currentUrl = resolveUrl(response.headers.location, currentUrl);
-			continue;
-		}
+			const location = getHeader(response.headers, 'location');
+			if (isRedirect(response.status) && location) {
+				currentUrl = resolveUrl(location, currentUrl);
+				continue;
+			}
 
 		if (response.status >= 200 && response.status < 300) {
 			return { url: currentUrl, text: response.text };
@@ -297,20 +275,21 @@ async function requestTextWithRedirect(url: string, maxRedirects = 5): Promise<{
 async function requestArrayBufferWithRedirect(url: string, maxRedirects = 5): Promise<{ url: string; arrayBuffer: ArrayBuffer }> {
 	let currentUrl = url;
 	for (let i = 0; i <= maxRedirects; i++) {
-		const response = await requestUrl({
-			url: currentUrl,
-			method: 'GET',
-			headers: {
-				...HTML_HEADERS,
-				Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
-			},
-			throw: false
-		});
+			const response = await requestUrl({
+				url: currentUrl,
+				method: 'GET',
+				headers: {
+					...HTML_HEADERS,
+					Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+				},
+				throw: false
+			});
 
-		if (isRedirect(response.status) && response.headers.location) {
-			currentUrl = resolveUrl(response.headers.location, currentUrl);
-			continue;
-		}
+			const location = getHeader(response.headers, 'location');
+			if (isRedirect(response.status) && location) {
+				currentUrl = resolveUrl(location, currentUrl);
+				continue;
+			}
 
 		if (response.status >= 200 && response.status < 300) {
 			return { url: currentUrl, arrayBuffer: response.arrayBuffer };
@@ -332,4 +311,40 @@ function resolveUrl(location: string, baseUrl: string): string {
 	} catch {
 		return location;
 	}
+}
+
+function getHeader(headers: Record<string, string>, name: string): string | undefined {
+	const direct = headers[name];
+	if (direct) return direct;
+	const lowerName = name.toLowerCase();
+	for (const [key, value] of Object.entries(headers)) {
+		if (key.toLowerCase() === lowerName) {
+			return value;
+		}
+	}
+	return undefined;
+}
+
+function extractCanonicalUrlFromHtml(html: string | null, baseUrl?: string): string | null {
+	if (!html) {
+		return null;
+	}
+
+	const canonicalMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+	if (canonicalMatch && canonicalMatch[1]) {
+		const canonical = ensureAbsoluteUrl(canonicalMatch[1], baseUrl ?? '');
+		if (canonical) {
+			return canonical;
+		}
+	}
+
+	const ogUrlMatch = html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i);
+	if (ogUrlMatch && ogUrlMatch[1]) {
+		const ogUrl = ensureAbsoluteUrl(ogUrlMatch[1], baseUrl ?? '');
+		if (ogUrl) {
+			return ogUrl;
+		}
+	}
+
+	return null;
 }

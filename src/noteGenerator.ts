@@ -59,7 +59,7 @@ export function generateMovieNote(
 	}
 	
 	// Use resolved URL when available, otherwise normalize diary URLs when possible
-	const letterboxdUrl = resolvedUrl ?? normalizeLetterboxdUrl(movie.letterboxdUri);
+	const letterboxdUrl = normalizeLetterboxdUrl(resolvedUrl ?? movie.letterboxdUri);
 	lines.push(`letterboxd: ${letterboxdUrl}`);
 	
 	lines.push('status: Watched');

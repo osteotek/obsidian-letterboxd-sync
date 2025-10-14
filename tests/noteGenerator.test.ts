@@ -53,4 +53,33 @@ describe('noteGenerator', () => {
 		const body = note.split('---\n').pop() ?? '';
 		expect(body).toContain('![[Letterboxd/posters/example.jpg]]');
 	});
+
+	it('normalizes resolved URL to canonical film URL', () => {
+		const movie: LetterboxdMovie = {
+			date: '2024-01-01',
+			name: 'Example Film',
+			year: '2024',
+			letterboxdUri: 'https://boxd.it/abcd',
+			rating: '',
+			rewatch: '',
+			tags: '',
+			watchedDate: ''
+		};
+
+		const metadata: MovieMetadata = {
+			directors: [],
+			genres: [],
+			description: '',
+			cast: []
+		};
+
+		const note = generateMovieNote(
+			movie,
+			undefined,
+			metadata,
+			'https://letterboxd.com/someuser/film/example-film/'
+		);
+
+		expect(note).toContain('letterboxd: https://letterboxd.com/film/example-film/');
+	});
 });
