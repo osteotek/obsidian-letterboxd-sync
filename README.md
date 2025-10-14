@@ -34,7 +34,7 @@ Configure the plugin in Settings → Letterboxd Sync:
 
 - **Output folder**: Where movie notes will be created (default: `Letterboxd`)
 - **Download posters**: Toggle automatic poster image downloads (default: enabled)
-- **Poster folder**: Where poster images will be saved (default: `Letterboxd/posters`)
+- **Poster folder**: Where poster images will be saved (default: `Letterboxd/attachments`)
 
 ## CSV Format
 

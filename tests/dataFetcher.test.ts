@@ -1,5 +1,5 @@
 import { describe, beforeEach, afterEach, expect, it, vi, type Mock } from 'vitest';
-import { fetchMoviePageData, downloadPoster } from '../src/posterFetcher';
+import { fetchMoviePageData, downloadPoster } from '../src/dataFetcher';
 import { __setRequestUrlImplementation, __resetRequestUrlImplementation } from 'obsidian';
 
 type MockResponse = {
@@ -12,7 +12,7 @@ type MockResponse = {
 let requestUrlMock: Mock<[unknown], Promise<unknown>>;
 let responseQueue: MockResponse[] = [];
 
-describe('posterFetcher (unit)', () => {
+describe('dataFetcher (unit)', () => {
 	beforeEach(() => {
 		responseQueue = [];
 		requestUrlMock = vi.fn(async () => {

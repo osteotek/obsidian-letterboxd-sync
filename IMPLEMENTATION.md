@@ -22,7 +22,12 @@ obsidian-letterboxd-sync/
     ├── types.ts                # TypeScript interfaces
     ├── settings.ts             # Settings tab and defaults
     ├── csvParser.ts            # CSV parsing logic
-    ├── posterFetcher.ts        # Image download logic
+    ├── dataFetcher/            # Metadata + poster retrieval helpers
+    │   ├── index.ts            # Public fetch/download APIs
+    │   ├── canonical.ts        # Canonical URL resolution
+    │   ├── jsonLd.ts           # JSON-LD parsing helpers
+    │   ├── request.ts          # Obsidian requestUrl wrappers
+    │   └── utils.ts            # Shared URL/array utilities
     ├── noteGenerator.ts        # Markdown generation
     └── importer.ts             # Main import orchestration
 ```
@@ -38,10 +43,10 @@ obsidian-letterboxd-sync/
 - `parseCSVLine()`: Handles quoted fields and commas
 - Robust handling of Letterboxd CSV format
 
-### 3. Poster Fetcher (`src/posterFetcher.ts`)
-- `fetchPosterUrl()`: Scrapes poster URL from Letterboxd page
-- `downloadPoster()`: Downloads image as ArrayBuffer
-- Looks for `og:image` meta tag for poster URL
+### 3. Data Fetcher (`src/dataFetcher/`)
+- `fetchMoviePageData()`: Resolves canonical film page and parses JSON-LD
+- `downloadPoster()`: Streams binary poster data via `requestUrl`
+- Modular helpers for canonical resolution, JSON-LD parsing, and request handling
 
 ### 4. Note Generator (`src/noteGenerator.ts`)
 - `generateMovieNote()`: Creates markdown content

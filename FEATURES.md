@@ -59,7 +59,7 @@ All data from the Letterboxd CSV is preserved in the markdown notes:
 ### Configurable Options
 - **Output Folder**: Choose where movie notes are created (default: `Letterboxd`)
 - **Download Posters**: Toggle automatic poster downloads (default: enabled)
-- **Poster Folder**: Choose where poster images are saved (default: `Letterboxd/posters`)
+- **Poster Folder**: Choose where poster images are saved (default: `Letterboxd/attachments`)
 
 ## User Experience
 

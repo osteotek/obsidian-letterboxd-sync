@@ -1,7 +1,7 @@
 import { App, Notice, TFile, normalizePath } from 'obsidian';
 import { LetterboxdMovie, LetterboxdSyncSettings, MovieMetadata } from './types';
 import { parseLetterboxdCSV } from './csvParser';
-import { fetchMoviePageData, downloadPoster } from './posterFetcher';
+import { fetchMoviePageData, downloadPoster } from './dataFetcher';
 import { generateMovieNote, sanitizeFileName } from './noteGenerator';
 
 export async function importLetterboxdCSV(

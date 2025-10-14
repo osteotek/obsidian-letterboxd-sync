@@ -1,8 +1,8 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
-import { fetchMoviePageData } from '../src/posterFetcher';
+import { fetchMoviePageData } from '../src/dataFetcher';
 import { __setRequestUrlImplementation, __resetRequestUrlImplementation, type RequestUrlParams, type RequestUrlResponse } from 'obsidian';
 
-describe('posterFetcher (integration)', () => {
+describe('dataFetcher (integration)', () => {
 	beforeAll(() => {
 		__setRequestUrlImplementation(realRequestUrl);
 	});
