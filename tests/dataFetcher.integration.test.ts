@@ -1,13 +1,15 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
-import { fetchMoviePageData } from '../src/dataFetcher';
+import { fetchMoviePageData, setDebugLogging } from '../src/dataFetcher';
 import { __setRequestUrlImplementation, __resetRequestUrlImplementation, type RequestUrlParams, type RequestUrlResponse } from 'obsidian';
 
 describe('dataFetcher (integration)', () => {
 	beforeAll(() => {
+		setDebugLogging(true);
 		__setRequestUrlImplementation(realRequestUrl);
 	});
 
 	afterAll(() => {
+		setDebugLogging(false);
 		__resetRequestUrlImplementation();
 	});
 

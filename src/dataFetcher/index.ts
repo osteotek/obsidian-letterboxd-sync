@@ -1,4 +1,5 @@
 import { resolveCanonicalFilmPage } from './canonical';
+import { debugLog, setDebugLogging } from './debug';
 import { extractDescriptionFromHtml, parseJsonLdData } from './jsonLd';
 import { requestArrayBufferWithRedirect } from './request';
 import { createEmptyPageData, MoviePageData } from './types';
@@ -22,7 +23,7 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		if ((!description || description.trim().length === 0) && html) {
 			const fallbackDescription = extractDescriptionFromHtml(html);
 			if (fallbackDescription) {
-				console.debug('Using fallback OG description from HTML');
+				debugLog('Using fallback OG description from HTML');
 				description = fallbackDescription;
 			}
 		}
@@ -32,12 +33,12 @@ export async function fetchMoviePageData(letterboxdUri: string): Promise<MoviePa
 		const cast = jsonLdData?.cast ? jsonLdData.cast.slice(0, 10) : [];
 		const canonicalUrl = jsonLdData?.movieUrl ?? resolvedUrl;
 		if (jsonLdData?.movieUrl) {
-			console.debug(`Canonical URL from JSON-LD: ${jsonLdData.movieUrl}`);
+			debugLog(`Canonical URL from JSON-LD: ${jsonLdData.movieUrl}`);
 		}
 		if (!posterUrl) {
 			console.warn(`JSON-LD metadata missing poster image for ${resolvedUrl}`);
 		} else {
-			console.debug(`Poster URL from JSON-LD: ${posterUrl}`);
+			debugLog(`Poster URL from JSON-LD: ${posterUrl}`);
 		}
 
 		return {
@@ -62,3 +63,4 @@ export async function downloadPoster(url: string): Promise<ArrayBuffer | null> {
 }
 
 export * from './types';
+export { setDebugLogging };

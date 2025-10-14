@@ -1,119 +1,113 @@
 # Letterboxd Sync for Obsidian
 
-Import your movie diary from Letterboxd into Obsidian! This plugin reads CSV exports from Letterboxd and creates individual markdown notes for each movie, complete with poster images.
+Bring your Letterboxd diary into Obsidian with one command. The plugin reads Letterboxd CSV exports, resolves each film’s canonical page, downloads the poster, and generates a richly annotated note per movie.
 
-## Features
+---
 
-- 📁 Import movies from Letterboxd CSV exports
-- 🎬 Create individual markdown notes for each movie
-- 🖼️ Automatically download and embed movie poster images
-- 🎭 Scrape directors and genres from Letterboxd pages
-- 📋 YAML frontmatter for Dataview compatibility
-- ⭐ Preserve all movie metadata (rating, tags, watched date, etc.)
-- �� Customizable output folders for notes and images
-- 🔄 Smart duplicate detection (won't reimport existing movies)
+## Highlights
 
-## Usage
+- **One-step import** – batch process any Letterboxd CSV export (`watched.csv`, `ratings.csv`, etc.).
+- **Rich metadata** – JSON‑LD scraping adds title, year, description, directors, genres, and the first ten cast members.
+- **Poster handling** – downloads posters via Obsidian’s `requestUrl`, stores them in `Letterboxd/attachments`, and skips files that already exist.
+- **Clean notes** – YAML frontmatter for Dataview, embedded poster, converted tags, and a ready‑to‑edit notes section.
+- **Safe re-runs** – duplicate detection, file-name sanitisation, and automatic folder creation keep your vault tidy.
 
-1. Export your movie data from Letterboxd:
-   - Go to https://letterboxd.com/settings/data/
-   - Click "Export your data"
-   - Download the ZIP file and extract the `watched.csv` or `ratings.csv` file
+---
 
-2. In Obsidian, open the Command Palette (Ctrl/Cmd + P)
+## Quick Start
 
-3. Search for "Import Letterboxd CSV" and select it
+1. **Export from Letterboxd**  
+   Visit <https://letterboxd.com/settings/data/>, export your data, unzip it, and pick the CSV you want (e.g. `watched.csv`).
 
-4. Choose your CSV file from the file picker
+2. **Install the plugin**  
+   Copy `main.js`, `manifest.json`, and `styles.css` into `<vault>/.obsidian/plugins/letterboxd-sync/`, reload Obsidian, and enable the plugin.
 
-5. Wait for the import to complete - progress will be shown in the modal
+3. **Run the import**  
+   Open the Command Palette → “Import Letterboxd CSV” → choose your CSV. Progress appears in the modal; posters land in `Letterboxd/attachments/`.
+
+---
 
 ## Settings
 
-Configure the plugin in Settings → Letterboxd Sync:
+| Option | Default | Description |
+| --- | --- | --- |
+| Output folder | `Letterboxd` | Destination for generated movie notes. |
+| Download posters | Enabled | Toggle automatic poster downloads. |
+| Poster folder | `Letterboxd/attachments` | Storage location for poster images. |
 
-- **Output folder**: Where movie notes will be created (default: `Letterboxd`)
-- **Download posters**: Toggle automatic poster image downloads (default: enabled)
-- **Poster folder**: Where poster images will be saved (default: `Letterboxd/attachments`)
+The plugin creates folders on demand and reuses existing posters when present.
 
-## CSV Format
+---
 
-The plugin expects CSV files with the following columns:
-```
-Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date
-```
-
-This matches the standard Letterboxd export format.
-
-## Generated Note Format
-
-Each movie note includes structured YAML frontmatter and content:
+## Output at a Glance
 
 ```markdown
 ---
-title: "Movie Title"
-year: Year
+title: "The Matrix"
+year: 1999
 rating: 4.5
-cover: "[[poster.jpg]]"
-description: "Movie description from Letterboxd"
+cover: "[[Letterboxd/attachments/The Matrix_1999.jpg]]"
+description: "Set in the 22nd century..."
 directors:
-  - Director Name
+  - The Wachowskis
 genres:
-  - Genre 1
-  - Genre 2
+  - Science Fiction
+  - Action
 cast:
-  - Actor 1
-  - Actor 2
-  - Actor 3
-watched: YYYY-MM-DD
-rewatch: true
-letterboxd: https://letterboxd.com/film/movie-slug/
+  - Keanu Reeves
+  - Laurence Fishburne
+  - Carrie-Anne Moss
+watched: 2024-10-09
+letterboxd: https://letterboxd.com/film/the-matrix/
 status: Watched
 ---
 
-# Movie Title (Year)
+![[Letterboxd/attachments/The Matrix_1999.jpg]]
 
-![[poster.jpg]]
-
-Tags: #tag1, #tag2
+Tags: #sci-fi, #action
 
 ## Notes
-
-(Space for your personal notes)
 ```
+
+Resulting vault structure:
+
+```
+Letterboxd/
+├── The Matrix (1999).md
+├── …other movies…
+└── attachments/
+    ├── The Matrix_1999.jpg
+    ├── Inception_2010.jpg
+    └── …
+```
+
+---
+
+## Under the Hood (TL;DR)
+
+- `src/csvParser.ts` – Parses Letterboxd CSV exports (quoted fields included).
+- `src/dataFetcher/` – Resolves canonical film URLs, parses JSON‑LD metadata, and downloads posters with Obsidian’s `requestUrl`.
+- `src/noteGenerator.ts` – Produces YAML frontmatter + note body and sanitises filenames.
+- `src/importer.ts` – Orchestrates the import run, handles duplicates, and reports progress.
+- `src/settings.ts` – Persists user preferences via Obsidian’s settings UI.
+
+Everything is TypeScript, bundled with esbuild, and free of runtime dependencies.
+
+---
 
 ## Development
 
-### Building
-
 ```bash
-npm install
-npm run build
+npm install        # install dependencies
+npm run dev        # watch mode
+npm run build      # type-check + bundle
+npm run test       # vitest unit + integration (requires network)
 ```
 
-### Dev Mode (watch)
+Place the resulting `main.js`, `manifest.json`, and `styles.css` into your vault’s plugins directory for manual testing.
 
-```bash
-npm run dev
-```
-
-## Installation
-
-### From Release
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release
-2. Create a folder in your vault: `VaultFolder/.obsidian/plugins/letterboxd-sync/`
-3. Copy the files into that folder
-4. Reload Obsidian
-5. Enable the plugin in Settings → Community plugins
-
-### Manual
-
-1. Clone this repo
-2. `npm install`
-3. `npm run build`
-4. Copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugins folder
+---
 
 ## License
 
-MIT
+MIT © Contributors

@@ -1,4 +1,5 @@
 import { requestUrl } from 'obsidian';
+import { debugLog } from './debug';
 
 const HTML_HEADERS = {
 	Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -21,13 +22,13 @@ export async function requestTextWithRedirect(url: string, maxRedirects = 5): Pr
 
 		const location = getHeader(response.headers, 'location');
 		if (isRedirect(response.status) && location) {
-			console.debug(`Redirect ${response.status} from ${currentUrl} to ${location}`);
+			debugLog(`Redirect ${response.status} from ${currentUrl} to ${location}`);
 			currentUrl = resolveUrl(location, currentUrl);
 			continue;
 		}
 
 		if (response.status >= 200 && response.status < 300) {
-			console.debug(`Fetched ${currentUrl} with status ${response.status}`);
+			debugLog(`Fetched ${currentUrl} with status ${response.status}`);
 			return { url: currentUrl, text: response.text };
 		}
 
@@ -55,13 +56,13 @@ export async function requestArrayBufferWithRedirect(url: string, maxRedirects =
 
 		const location = getHeader(response.headers, 'location');
 		if (isRedirect(response.status) && location) {
-			console.debug(`Binary redirect ${response.status} from ${currentUrl} to ${location}`);
+			debugLog(`Binary redirect ${response.status} from ${currentUrl} to ${location}`);
 			currentUrl = resolveUrl(location, currentUrl);
 			continue;
 		}
 
 		if (response.status >= 200 && response.status < 300) {
-			console.debug(`Fetched binary ${currentUrl} with status ${response.status}`);
+			debugLog(`Fetched binary ${currentUrl} with status ${response.status}`);
 			return { url: currentUrl, arrayBuffer: response.arrayBuffer };
 		}
 

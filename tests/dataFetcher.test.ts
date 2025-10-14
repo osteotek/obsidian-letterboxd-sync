@@ -1,5 +1,5 @@
-import { describe, beforeEach, afterEach, expect, it, vi, type Mock } from 'vitest';
-import { fetchMoviePageData, downloadPoster } from '../src/dataFetcher';
+import { describe, beforeAll, afterAll, beforeEach, afterEach, expect, it, vi, type Mock } from 'vitest';
+import { fetchMoviePageData, downloadPoster, setDebugLogging } from '../src/dataFetcher';
 import { __setRequestUrlImplementation, __resetRequestUrlImplementation } from 'obsidian';
 
 type MockResponse = {
@@ -13,6 +13,14 @@ let requestUrlMock: Mock<[unknown], Promise<unknown>>;
 let responseQueue: MockResponse[] = [];
 
 describe('dataFetcher (unit)', () => {
+	beforeAll(() => {
+		setDebugLogging(true);
+	});
+
+	afterAll(() => {
+		setDebugLogging(false);
+	});
+
 	beforeEach(() => {
 		responseQueue = [];
 		requestUrlMock = vi.fn(async () => {

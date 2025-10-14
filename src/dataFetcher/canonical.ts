@@ -1,3 +1,4 @@
+import { debugLog } from './debug';
 import { extractCanonicalUrlFromHtml } from './jsonLd';
 import { requestTextWithRedirect } from './request';
 import { normalizeFilmUrl } from './utils';
@@ -17,7 +18,7 @@ export async function resolveCanonicalFilmPage(initialUrl: string): Promise<{ ur
 		const normalizedFromFetch = normalizeFilmUrl(result.url) ?? extractCanonicalUrlFromHtml(result.text, result.url) ?? null;
 
 		if (normalizedFromFetch && normalizedFromFetch !== result.url) {
-			console.debug(`Resolved ${result.url} to canonical ${normalizedFromFetch}, refetching.`);
+			debugLog(`Resolved ${result.url} to canonical ${normalizedFromFetch}, refetching.`);
 			targetUrl = normalizedFromFetch;
 			html = null;
 			continue;
