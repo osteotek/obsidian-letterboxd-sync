@@ -179,10 +179,11 @@ npm test       # run tests
 ### Create a Release
 
 **Easiest: GitHub Actions UI**
-1. Go to **Actions** → **Manual Release**
+1. Go to **Actions** → **Release**
 2. Click **Run workflow**
 3. Enter version (e.g., `1.1.0`)
-4. Click **Run workflow**
+4. Optional: Check "Pre-release" or "Draft"
+5. Click **Run workflow**
 
 Done! Release created automatically with all files.
 
@@ -195,22 +196,23 @@ git tag 1.1.0
 git push origin main --tags
 ```
 
-### What Gets Automated
+### Unified Release Workflow
 
-**Automatic Release** (on tag push):
-- ✅ Validates version consistency
-- ✅ Runs tests
-- ✅ Builds plugin
-- ✅ Generates release notes from commits
-- ✅ Creates GitHub release
-- ✅ Attaches `main.js`, `manifest.json`, `styles.css`
+One workflow handles both automatic and manual releases:
 
-**Manual Release** (via GitHub UI):
-- ✅ Updates all version files
+**Automatic** (on tag push):
+- ✅ Validates version consistency across files
 - ✅ Runs tests and builds
-- ✅ Creates release (draft or published)
-- ✅ Commits changes back to repository
-- ✅ Supports pre-release marking
+- ✅ Generates release notes from commits
+- ✅ Creates published release
+- ✅ Attaches all required files
+
+**Manual** (via GitHub UI):
+- ✅ Updates all version files automatically
+- ✅ Runs tests and builds
+- ✅ Generates release notes
+- ✅ Creates release (published, draft, or pre-release)
+- ✅ Commits version changes back to repo
 
 ### Version Format
 
@@ -221,15 +223,14 @@ Use [Semantic Versioning](https://semver.org/):
 
 ### GitHub Actions Workflows
 
-1. **Release** - Automatic on tag push
-2. **Manual Release** - Via GitHub UI
-3. **Validate Release** - Checks PRs with version changes
-4. **PR Tests** - Runs tests on all PRs
+1. **Release** - Unified workflow for automatic (tags) and manual (UI) releases
+2. **Validate Release** - Validates version consistency on PRs
+3. **PR Tests** - Runs tests on all pull requests
 
 ### Required Files
 
-Every release must include:
-- ✅ `main.js` - Compiled plugin
+Every release includes:
+- ✅ `main.js` - Compiled plugin code
 - ✅ `manifest.json` - Plugin metadata
 - ✅ `styles.css` - Plugin styles
 
