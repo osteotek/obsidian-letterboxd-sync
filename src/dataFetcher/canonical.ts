@@ -9,22 +9,21 @@ import { normalizeFilmUrl } from './utils';
 export async function resolveCanonicalFilmPage(initialUrl: string): Promise<{ url: string; html: string }> {
 	let targetUrl = normalizeFilmUrl(initialUrl) ?? initialUrl;
 	let lastFetchedUrl = initialUrl;
-	let html: string | null = null;
+	let html = '';
 
 	// Repeatedly resolve redirects/canonical hints until we reach the canonical slug.
 	for (let attempt = 0; attempt < 4; attempt++) {
 		const result = await requestTextWithRedirect(targetUrl);
 		lastFetchedUrl = result.url;
+		html = result.text;
 		const normalizedFromFetch = normalizeFilmUrl(result.url) ?? extractCanonicalUrlFromHtml(result.text, result.url) ?? null;
 
 		if (normalizedFromFetch && normalizedFromFetch !== result.url) {
 			debugLog(`Resolved ${result.url} to canonical ${normalizedFromFetch}, refetching.`);
 			targetUrl = normalizedFromFetch;
-			html = null;
 			continue;
 		}
 
-		html = result.text;
 		const finalUrl = normalizedFromFetch ?? result.url;
 		return { url: finalUrl, html };
 	}

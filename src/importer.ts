@@ -4,12 +4,13 @@ import { parseLetterboxdCSV } from './csvParser';
 import { fetchMoviePageData, downloadPoster } from './dataFetcher';
 import { generateMovieNote, sanitizeFileName } from './noteGenerator';
 
-type ImportProgressCallback = (current: number, total: number, movie: string) => void;
+type ImportProgressCallback = (current: number, total: number, movie: string, posterUrl?: string) => void;
 
 interface ImportOptions {
 	sourceName?: string;
 	onProgress?: ImportProgressCallback;
 	isCancelled?: () => boolean;
+	excludeMovies?: Set<string>;
 }
 
 export async function importLetterboxdCSV(
@@ -20,10 +21,23 @@ export async function importLetterboxdCSV(
 ): Promise<void> {
 	try {
 		// Parse CSV
-		const movies = parseLetterboxdCSV(csvContent);
+		let movies = parseLetterboxdCSV(csvContent);
+		
+		// Filter out excluded movies if provided
+		if (options?.excludeMovies && options.excludeMovies.size > 0) {
+			const originalCount = movies.length;
+			movies = movies.filter(movie => {
+				const movieId = `${movie.name}|${movie.year}`;
+				return !options.excludeMovies!.has(movieId);
+			});
+			const excludedCount = originalCount - movies.length;
+			if (excludedCount > 0) {
+				console.log(`Excluded ${excludedCount} duplicate movies from ${options.sourceName || 'CSV'}`);
+			}
+		}
 		
 		if (movies.length === 0) {
-			new Notice('No movies found in CSV file');
+			new Notice('No movies found in CSV file (or all were duplicates)');
 			return;
 		}
 
@@ -53,20 +67,20 @@ export async function importLetterboxdCSV(
 
 		const movie = movies[i];
 		
-		if (options?.onProgress) {
-			options.onProgress(i + 1, movies.length, movie.name);
+		try {
+			await importMovie(app, movie, settings, options?.sourceName, (posterUrl?: string) => {
+				if (options?.onProgress) {
+					options.onProgress(i + 1, movies.length, movie.name, posterUrl);
+				}
+			});
+			successCount++;
+		} catch (error) {
+			console.error(`Failed to import ${movie.name}:`, error);
+			failCount++;
 		}
 
-			try {
-				await importMovie(app, movie, settings, options?.sourceName);
-				successCount++;
-			} catch (error) {
-				console.error(`Failed to import ${movie.name}:`, error);
-				failCount++;
-			}
-
-			// Small delay to avoid overwhelming the system
-			await sleep(100);
+		// Small delay to avoid overwhelming the system and rate limits
+		await sleep(200);
 	}
 
 	if (cancelled) {
@@ -86,9 +100,11 @@ async function importMovie(
 	app: App,
 	movie: LetterboxdMovie,
 	settings: LetterboxdSyncSettings,
-	sourceName?: string
+	sourceName?: string,
+	onPosterFetched?: (posterUrl?: string) => void
 ): Promise<void> {
-	const fileName = sanitizeFileName(`${movie.name} (${movie.year})`);
+	const fileNameBase = movie.year ? `${movie.name} (${movie.year})` : movie.name;
+	const fileName = sanitizeFileName(fileNameBase);
 	const filePath = normalizePath(`${settings.outputFolder}/${fileName}.md`);
 
 	const existingFile = app.vault.getAbstractFileByPath(filePath);
@@ -107,10 +123,15 @@ async function importMovie(
 			resolvedMovieUrl = pageData.movieUrl ?? undefined;
 			if (pageData.posterUrl) {
 				posterLink = pageData.posterUrl;
+				// Notify callback with poster URL
+				if (onPosterFetched) {
+					onPosterFetched(pageData.posterUrl);
+				}
 			}
 
 			if (settings.downloadPosters && pageData.posterUrl) {
-				const posterFileName = sanitizeFileName(`${movie.name}_${movie.year}.jpg`);
+				const posterFileNameBase = movie.year ? `${movie.name}_${movie.year}` : movie.name;
+				const posterFileName = sanitizeFileName(`${posterFileNameBase}.jpg`);
 				posterPath = `${settings.posterFolder}/${posterFileName}`;
 				const posterFullPath = normalizePath(posterPath);
 				const posterFolderPath = getFolderPath(posterFullPath);
@@ -187,7 +208,8 @@ function sleep(ms: number): Promise<void> {
 function getFolderPath(filePath: string): string {
 	const parts = normalizePath(filePath).split('/');
 	parts.pop();
-	return parts.join('/');
+	const result = parts.join('/');
+	return result || '.';
 }
 
 export function determineStatus(movie: LetterboxdMovie, sourceName?: string): string {
@@ -195,7 +217,7 @@ export function determineStatus(movie: LetterboxdMovie, sourceName?: string): st
 	if (source.endsWith('watchlist.csv')) {
 		return 'Want to Watch';
 	}
-	if (source.endsWith('watched.csv')) {
+	if (source.endsWith('watched.csv') || source.endsWith('diary.csv')) {
 		return 'Watched';
 	}
 	return movie.watchedDate && movie.watchedDate.trim().length > 0 ? 'Watched' : 'Want to Watch';

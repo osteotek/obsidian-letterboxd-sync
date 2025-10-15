@@ -67,9 +67,16 @@ function parseCSVLine(line: string): string[] {
 
 	for (let i = 0; i < line.length; i++) {
 		const char = line[i];
+		const nextChar = line[i + 1];
 
 		if (char === '"') {
-			insideQuotes = !insideQuotes;
+			// Handle escaped quotes (double quotes)
+			if (insideQuotes && nextChar === '"') {
+				currentField += '"';
+				i++; // Skip the next quote
+			} else {
+				insideQuotes = !insideQuotes;
+			}
 		} else if (char === ',' && !insideQuotes) {
 			fields.push(currentField);
 			currentField = '';

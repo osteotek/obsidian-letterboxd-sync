@@ -1,5 +1,14 @@
 /* Letterboxd Sync Plugin Styles */
 
+/* Modal Title */
+.letterboxd-modal-title {
+	text-align: center;
+	margin-bottom: 24px;
+	font-size: 1.8em;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
 .modal-button-container {
 	display: flex;
 	justify-content: flex-end;
@@ -10,6 +19,115 @@
 .modal-button-container button {
 	padding: 8px 16px;
 	cursor: pointer;
+}
+
+/* Instructions - Modern Card Style */
+.letterboxd-instructions {
+	transition: opacity 0.3s ease;
+	margin-bottom: 24px;
+}
+
+.letterboxd-info-card {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 20px;
+	margin-bottom: 16px;
+	transition: all 0.3s ease;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.letterboxd-info-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.letterboxd-info-card-title {
+	font-size: 1.1em;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 12px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.letterboxd-info-card-text {
+	color: var(--text-muted);
+	line-height: 1.6;
+	margin: 0;
+}
+
+/* Steps */
+.letterboxd-steps-container {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.letterboxd-step {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.letterboxd-step-number {
+	flex-shrink: 0;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 600;
+	font-size: 0.9em;
+}
+
+.letterboxd-step-text {
+	flex: 1;
+	color: var(--text-muted);
+	line-height: 1.6;
+	padding-top: 4px;
+}
+
+/* Settings Grid */
+.letterboxd-settings-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.letterboxd-settings-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.letterboxd-settings-item:last-child {
+	border-bottom: none;
+}
+
+.letterboxd-settings-label {
+	font-weight: 500;
+	color: var(--text-normal);
+	white-space: nowrap;
+}
+
+.letterboxd-settings-value {
+	color: var(--text-muted);
+	text-align: right;
+	flex: 1;
+}
+
+/* File selectors container */
+.letterboxd-file-selectors {
+	transition: opacity 0.3s ease;
+	margin-bottom: 20px;
 }
 
 /* Stats Display */
@@ -105,6 +223,37 @@
 	box-shadow: 0 0 10px rgba(var(--interactive-accent-rgb), 0.5);
 }
 
+/* Poster display */
+.letterboxd-poster-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-height: 200px;
+}
+
+.letterboxd-poster-container {
+	width: 100%;
+	max-width: 300px;
+	margin-top: 12px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.letterboxd-poster-image {
+	max-width: 100%;
+	max-height: 400px;
+	border-radius: 8px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+	transition: all 0.3s ease;
+	object-fit: contain;
+}
+
+.letterboxd-poster-image:hover {
+	transform: scale(1.02);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
 /* Animation for stat values */
 @keyframes pulse {
 	0%, 100% {
@@ -118,43 +267,3 @@
 .letterboxd-stat-value {
 	animation: pulse 2s ease-in-out infinite;
 }
-
-/* Instructions container */
-.letterboxd-instructions {
-	transition: opacity 0.3s ease;
-}
-
-/* File selectors container */
-.letterboxd-file-selectors {
-	transition: opacity 0.3s ease;
-}
-
-.letterboxd-import-steps {
-	margin: 16px 0;
-	padding-left: 24px;
-}
-
-.letterboxd-summary {
-	margin: 20px 0;
-	padding: 16px;
-	background: var(--background-secondary);
-	border-radius: 8px;
-	border-left: 4px solid var(--interactive-accent);
-}
-
-.letterboxd-summary h3 {
-	margin-top: 0;
-	margin-bottom: 12px;
-	color: var(--text-normal);
-}
-
-.letterboxd-summary ul {
-	margin: 0;
-	padding-left: 24px;
-}
-
-.letterboxd-summary li {
-	margin: 8px 0;
-	color: var(--text-muted);
-}
-

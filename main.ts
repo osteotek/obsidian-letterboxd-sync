@@ -40,6 +40,7 @@ class ImportModal extends Modal {
 	fileSelectorsContainer: HTMLElement;
 	statsContainer: HTMLElement;
 	progressBarElement: HTMLElement;
+	posterElement: HTMLImageElement;
 	statsElements: {
 		currentFile?: HTMLElement;
 		progress?: HTMLElement;
@@ -47,10 +48,15 @@ class ImportModal extends Modal {
 		filesProcessed?: HTMLElement;
 		moviesProcessed?: HTMLElement;
 		timeElapsed?: HTMLElement;
+		timeRemaining?: HTMLElement;
 	};
 	startTime: number;
 	timerHandle: number | null;
 	isActive: boolean;
+	totalMovies: number;
+	processedMovies: number;
+	isImporting: boolean;
+	cancelImport: (() => void) | null;
 
 	constructor(app: App, plugin: LetterboxdSyncPlugin) {
 		super(app);
@@ -59,45 +65,93 @@ class ImportModal extends Modal {
 		this.startTime = 0;
 		this.timerHandle = null;
 		this.isActive = true;
+		this.totalMovies = 0;
+		this.processedMovies = 0;
+		this.isImporting = false;
+		this.cancelImport = null;
 	}
 
 	onOpen() {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl('h2', { text: 'Import Letterboxd CSVs' });
+		contentEl.createEl('h2', { text: 'Import Letterboxd CSVs', cls: 'letterboxd-modal-title' });
 
 		// Instructions container (will be hidden during import)
 		this.instructionsContainer = contentEl.createDiv({ cls: 'letterboxd-instructions' });
 
-		this.instructionsContainer.createEl('p', {
-			text: 'Attach diary.csv, watched.csv, and/or watchlist.csv from your export. Selected files import sequentially using the settings below.'
-		}).addClass('setting-item-description');
-
-		const stepsList = this.instructionsContainer.createEl('ol');
-		stepsList.addClass('letterboxd-import-steps');
-		stepsList.createEl('li', { text: 'Export your data at Letterboxd → Settings → Data → Export.' });
-		stepsList.createEl('li', { text: 'Unzip the download and grab diary.csv, watched.csv, and watchlist.csv as needed.' });
-		stepsList.createEl('li', { text: 'Select any combination below. They import in the order shown.' });
-
-		const summary = this.instructionsContainer.createDiv({ cls: 'letterboxd-summary' });
-		summary.createEl('h3', { text: 'Current settings' });
-		const summaryList = summary.createEl('ul');
-		summaryList.createEl('li', { text: `Notes folder: ${this.plugin.settings.outputFolder || 'Not set'}` });
-		const posterSummary = this.plugin.settings.downloadPosters
-			? `Posters will be saved to ${this.plugin.settings.posterFolder || 'the configured attachments folder'}.`
-			: 'Posters will remain on Letterboxd; notes will link to the online image.';
-		summaryList.createEl('li', { text: posterSummary });
-		summaryList.createEl('li', {
-			text: 'Status rules: diary & watched imports → Watched, watchlist import → Want to Watch, others use the watched date.'
+		// Introduction card
+		const introCard = this.instructionsContainer.createDiv({ cls: 'letterboxd-info-card' });
+		introCard.createEl('div', { 
+			text: '📥 Getting Started', 
+			cls: 'letterboxd-info-card-title' 
 		});
-		summaryList.createEl('li', {
-			text: 'Supported files: diary.csv, watched.csv, watchlist.csv (select any combination).'
+		introCard.createEl('p', {
+			text: 'Import your Letterboxd viewing history into Obsidian. Select one or more CSV files from your Letterboxd data export.',
+			cls: 'letterboxd-info-card-text'
 		});
 
-		this.instructionsContainer.createEl('p', {
-			text: 'Leave a selector empty to skip that dataset.'
-		}).addClass('setting-item-description');
+		// Steps card
+		const stepsCard = this.instructionsContainer.createDiv({ cls: 'letterboxd-info-card' });
+		stepsCard.createEl('div', { 
+			text: '📋 Export Instructions', 
+			cls: 'letterboxd-info-card-title' 
+		});
+		const stepsContainer = stepsCard.createDiv({ cls: 'letterboxd-steps-container' });
+		
+		const step1 = stepsContainer.createDiv({ cls: 'letterboxd-step' });
+		step1.createEl('span', { text: '1', cls: 'letterboxd-step-number' });
+		step1.createEl('span', { 
+			text: 'Go to Letterboxd → Settings → Data → Export', 
+			cls: 'letterboxd-step-text' 
+		});
+
+		const step2 = stepsContainer.createDiv({ cls: 'letterboxd-step' });
+		step2.createEl('span', { text: '2', cls: 'letterboxd-step-number' });
+		step2.createEl('span', { 
+			text: 'Unzip the download and locate diary.csv, watched.csv, and watchlist.csv', 
+			cls: 'letterboxd-step-text' 
+		});
+
+		const step3 = stepsContainer.createDiv({ cls: 'letterboxd-step' });
+		step3.createEl('span', { text: '3', cls: 'letterboxd-step-number' });
+		step3.createEl('span', { 
+			text: 'Select any combination below and click Import', 
+			cls: 'letterboxd-step-text' 
+		});
+
+		// Settings card
+		const settingsCard = this.instructionsContainer.createDiv({ cls: 'letterboxd-info-card' });
+		settingsCard.createEl('div', { 
+			text: '⚙️ Current Settings', 
+			cls: 'letterboxd-info-card-title' 
+		});
+		
+		const settingsGrid = settingsCard.createDiv({ cls: 'letterboxd-settings-grid' });
+		
+		const notesItem = settingsGrid.createDiv({ cls: 'letterboxd-settings-item' });
+		notesItem.createEl('span', { text: 'Notes Folder', cls: 'letterboxd-settings-label' });
+		notesItem.createEl('span', { 
+			text: this.plugin.settings.outputFolder || 'Not set', 
+			cls: 'letterboxd-settings-value' 
+		});
+
+		const postersItem = settingsGrid.createDiv({ cls: 'letterboxd-settings-item' });
+		postersItem.createEl('span', { text: 'Posters', cls: 'letterboxd-settings-label' });
+		const posterText = this.plugin.settings.downloadPosters
+			? `Download to ${this.plugin.settings.posterFolder}`
+			: 'Link to online images';
+		postersItem.createEl('span', { 
+			text: posterText, 
+			cls: 'letterboxd-settings-value' 
+		});
+
+		const statusItem = settingsGrid.createDiv({ cls: 'letterboxd-settings-item' });
+		statusItem.createEl('span', { text: 'Status Rules', cls: 'letterboxd-settings-label' });
+		statusItem.createEl('span', { 
+			text: 'Diary/Watched → Watched, Watchlist → Want to Watch', 
+			cls: 'letterboxd-settings-value' 
+		});
 
 		// File selectors container (will be hidden during import)
 		this.fileSelectorsContainer = contentEl.createDiv({ cls: 'letterboxd-file-selectors' });
@@ -136,10 +190,12 @@ class ImportModal extends Modal {
 		});
 		importButton.disabled = true;
 
-		let isImporting = false;
 		let cancelled = false;
 
 		const updateImportButtonState = () => {
+			if (this.isImporting) {
+				return; // Don't update button state while importing
+			}
 			const hasFile = fileSelectors.some(sel => sel.input.files?.length);
 			importButton.disabled = !hasFile;
 			if (hasFile) {
@@ -173,10 +229,38 @@ class ImportModal extends Modal {
 			}
 
 			try {
-				isImporting = true;
+				this.isImporting = true;
 				cancelled = false;
-				importButton.disabled = true;
-				importButton.setText('Importing...');
+				
+				// Set up cancel function
+				this.cancelImport = () => {
+					cancelled = true;
+				};
+				
+				// Check if both diary and watched are selected - need to deduplicate
+				const hasDiary = queue.some(item => item.cfg.key === 'diary');
+				const hasWatched = queue.some(item => item.cfg.key === 'watched');
+				let diaryMovies: Set<string> | null = null;
+				
+				if (hasDiary && hasWatched) {
+					// Parse diary.csv to get list of movies to exclude from watched.csv
+					const diaryFile = queue.find(item => item.cfg.key === 'diary')?.file;
+					if (diaryFile) {
+						const diaryContent = await diaryFile.text();
+						const { parseLetterboxdCSV } = await import('./src/csvParser');
+						const parsed = parseLetterboxdCSV(diaryContent);
+						// Create a Set of unique movie identifiers (name + year)
+						diaryMovies = new Set(parsed.map(m => `${m.name}|${m.year}`));
+					}
+				}
+				
+				// Hide import button during import
+				importButton.style.display = 'none';
+				
+				// Disable file selectors during import
+				fileSelectors.forEach(({ input }) => {
+					input.disabled = true;
+				});
 
 				// Hide instructions, file selectors and show stats
 				this.instructionsContainer.style.display = 'none';
@@ -184,42 +268,47 @@ class ImportModal extends Modal {
 				this.statsContainer.style.display = 'block';
 				this.startTime = Date.now();
 				
-				// Initialize files processed counter
+				// Initialize file counter
 				if (this.statsElements.filesProcessed) {
-					this.statsElements.filesProcessed.setText(`0/${queue.length}`);
+					this.statsElements.filesProcessed.setText(`1/${queue.length}`);
 				}
 				
 				this.updateTimeElapsed();
 
-				let filesProcessedCount = 0;
-
-				for (const { cfg, file } of queue) {
+				for (let i = 0; i < queue.length; i++) {
+					const { cfg, file } = queue[i];
+					
+					// Update current file being processed
 					if (this.statsElements.currentFile) {
 						this.statsElements.currentFile.setText(cfg.label);
 					}
+					
+					// Update file counter to show current file
+					if (this.statsElements.filesProcessed) {
+						this.statsElements.filesProcessed.setText(`${i + 1}/${queue.length}`);
+					}
 
 					const csvContent = await file.text();
+					
+					// Determine if we should exclude movies for this file
+					const excludeMovies = (cfg.key === 'watched' && diaryMovies) ? diaryMovies : undefined;
+					
 					await importLetterboxdCSV(
 						this.app,
 						csvContent,
 						this.plugin.settings,
 						{
 							sourceName: `${cfg.key}.csv`,
-							onProgress: (current, total, movieName) => {
-								this.updateStats(current, total, movieName);
+							onProgress: (current, total, movieName, posterUrl) => {
+								this.updateStats(current, total, movieName, posterUrl);
 							},
-							isCancelled: () => cancelled
+							isCancelled: () => cancelled,
+							excludeMovies
 						}
 					);
 
 					if (cancelled) {
 						break;
-					}
-
-					filesProcessedCount++;
-					
-					if (this.statsElements.filesProcessed) {
-						this.statsElements.filesProcessed.setText(`${filesProcessedCount}/${queue.length}`);
 					}
 				}
 
@@ -230,9 +319,14 @@ class ImportModal extends Modal {
 					this.instructionsContainer.style.display = 'block';
 					this.fileSelectorsContainer.style.display = 'block';
 					this.statsContainer.style.display = 'none';
+					importButton.style.display = 'block';
 					importButton.disabled = false;
 					importButton.setText('Import');
 					cancelButton.disabled = false;
+					// Re-enable file selectors
+					fileSelectors.forEach(({ input }) => {
+						input.disabled = false;
+					});
 				}
 			} catch (error) {
 				console.error('Import error:', error);
@@ -241,10 +335,16 @@ class ImportModal extends Modal {
 				this.instructionsContainer.style.display = 'block';
 				this.fileSelectorsContainer.style.display = 'block';
 				this.statsContainer.style.display = 'none';
+				importButton.style.display = 'block';
 				importButton.disabled = false;
 				importButton.setText('Import');
+				// Re-enable file selectors
+				fileSelectors.forEach(({ input }) => {
+					input.disabled = false;
+				});
 			} finally {
-				isImporting = false;
+				this.isImporting = false;
+				this.cancelImport = null;
 			}
 		});
 
@@ -253,10 +353,10 @@ class ImportModal extends Modal {
 		});
 
 		cancelButton.addEventListener('click', () => {
-			if (isImporting) {
-				cancelled = true;
+			if (this.isImporting && this.cancelImport) {
+				this.cancelImport();
 				cancelButton.disabled = true;
-				importButton.setText('Cancelling...');
+				cancelButton.setText('Cancelling...');
 			} else {
 				this.close();
 			}
@@ -266,6 +366,11 @@ class ImportModal extends Modal {
 	onClose() {
 		const { contentEl } = this;
 		this.isActive = false;
+		
+		// Cancel import if one is in progress
+		if (this.isImporting && this.cancelImport) {
+			this.cancelImport();
+		}
 		
 		// Clear timer to prevent memory leak
 		if (this.timerHandle !== null) {
@@ -281,12 +386,30 @@ class ImportModal extends Modal {
 
 		const statsGrid = this.statsContainer.createDiv({ cls: 'letterboxd-stats-grid' });
 
+		// Poster display (wide card at top)
+		const posterCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card letterboxd-stat-card-wide letterboxd-poster-card' });
+		posterCard.createEl('div', { text: 'Current Movie', cls: 'letterboxd-stat-label' });
+		const posterContainer = posterCard.createDiv({ cls: 'letterboxd-poster-container' });
+		this.posterElement = posterContainer.createEl('img', { 
+			cls: 'letterboxd-poster-image',
+			attr: { alt: 'Movie Poster' }
+		});
+		this.posterElement.style.display = 'none'; // Hidden initially
+
 		// Current file being processed
 		const currentFileCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card' });
 		currentFileCard.createEl('div', { text: 'Current File', cls: 'letterboxd-stat-label' });
 		this.statsElements.currentFile = currentFileCard.createEl('div', { 
 			text: 'Initializing...', 
 			cls: 'letterboxd-stat-value letterboxd-stat-file' 
+		});
+
+		// Current file number (right next to Current File)
+		const filesCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card' });
+		filesCard.createEl('div', { text: 'File', cls: 'letterboxd-stat-label' });
+		this.statsElements.filesProcessed = filesCard.createEl('div', { 
+			text: '0/0', 
+			cls: 'letterboxd-stat-value' 
 		});
 
 		// Progress bar card
@@ -304,14 +427,6 @@ class ImportModal extends Modal {
 			cls: 'letterboxd-stat-movie' 
 		});
 
-		// Files processed
-		const filesCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card' });
-		filesCard.createEl('div', { text: 'Files Processed', cls: 'letterboxd-stat-label' });
-		this.statsElements.filesProcessed = filesCard.createEl('div', { 
-			text: '0/0', 
-			cls: 'letterboxd-stat-value' 
-		});
-
 		// Time elapsed
 		const timeCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card' });
 		timeCard.createEl('div', { text: 'Time Elapsed', cls: 'letterboxd-stat-label' });
@@ -319,9 +434,20 @@ class ImportModal extends Modal {
 			text: '0s', 
 			cls: 'letterboxd-stat-value' 
 		});
+
+		// Time remaining
+		const timeRemainingCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card' });
+		timeRemainingCard.createEl('div', { text: 'Time Remaining', cls: 'letterboxd-stat-label' });
+		this.statsElements.timeRemaining = timeRemainingCard.createEl('div', { 
+			text: 'Calculating...', 
+			cls: 'letterboxd-stat-value' 
+		});
 	}
 
-	updateStats(current: number, total: number, movieName: string) {
+	updateStats(current: number, total: number, movieName: string, posterUrl?: string) {
+		this.processedMovies = current;
+		this.totalMovies = total;
+
 		if (this.statsElements.progress) {
 			this.statsElements.progress.setText(`${current}/${total}`);
 		}
@@ -330,11 +456,22 @@ class ImportModal extends Modal {
 			this.statsElements.currentMovie.setText(movieName);
 		}
 
+		// Update poster
+		if (posterUrl) {
+			this.posterElement.src = posterUrl;
+			this.posterElement.style.display = 'block';
+		} else {
+			this.posterElement.style.display = 'none';
+		}
+
 		// Update progress bar
 		if (this.progressBarElement && total > 0) {
 			const percentage = (current / total) * 100;
 			this.progressBarElement.style.width = `${percentage}%`;
 		}
+
+		// Update time remaining
+		this.updateTimeRemaining();
 	}
 
 	updateTimeElapsed() {
@@ -348,10 +485,47 @@ class ImportModal extends Modal {
 		const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 		this.statsElements.timeElapsed.setText(timeStr);
 		
+		// Update time remaining as well
+		this.updateTimeRemaining();
+		
 		// Schedule next update only if modal is still active
 		if (this.isActive) {
 			this.timerHandle = window.setTimeout(() => this.updateTimeElapsed(), 1000);
 		}
+	}
+
+	updateTimeRemaining() {
+		if (!this.statsElements.timeRemaining || this.startTime === 0) {
+			return;
+		}
+
+		// Need at least a few processed items to make a reasonable estimate
+		if (this.processedMovies < 2 || this.totalMovies === 0) {
+			this.statsElements.timeRemaining.setText('Calculating...');
+			return;
+		}
+
+		const elapsed = (Date.now() - this.startTime) / 1000; // in seconds
+		const avgTimePerMovie = elapsed / this.processedMovies;
+		const remainingMovies = this.totalMovies - this.processedMovies;
+		const estimatedSecondsRemaining = Math.ceil(avgTimePerMovie * remainingMovies);
+
+		if (estimatedSecondsRemaining < 1) {
+			this.statsElements.timeRemaining.setText('Almost done!');
+			return;
+		}
+
+		const minutes = Math.floor(estimatedSecondsRemaining / 60);
+		const seconds = estimatedSecondsRemaining % 60;
+		
+		let timeStr: string;
+		if (minutes > 0) {
+			timeStr = `~${minutes}m ${seconds}s`;
+		} else {
+			timeStr = `~${seconds}s`;
+		}
+		
+		this.statsElements.timeRemaining.setText(timeStr);
 	}
 }
 

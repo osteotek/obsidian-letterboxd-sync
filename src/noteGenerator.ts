@@ -6,7 +6,7 @@ export function generateMovieNote(
 	metadata?: MovieMetadata,
 	resolvedUrl?: string,
 	posterLink?: string,
-	status: string = 'Watched'
+	status = 'Watched'
 ): string {
 	const lines: string[] = [];
 	
@@ -118,7 +118,12 @@ export function sanitizeFileName(name: string): string {
  * Escape user-provided strings for safe inclusion inside double-quoted YAML values.
  */
 function escapeYamlString(value: string): string {
-	return value.replace(/"/g, '\\"');
+	return value
+		.replace(/\\/g, '\\\\')  // Escape backslashes first
+		.replace(/"/g, '\\"')     // Escape double quotes
+		.replace(/\n/g, '\\n')    // Escape newlines
+		.replace(/\r/g, '\\r')    // Escape carriage returns
+		.replace(/\t/g, '\\t');   // Escape tabs
 }
 
 function normalizeLetterboxdUrl(urlString: string): string {
