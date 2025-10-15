@@ -19,9 +19,23 @@ export interface MovieMetadata {
 	countries?: string[];
 }
 
+export interface MetadataFieldsConfig {
+	directors: boolean;
+	genres: boolean;
+	description: boolean;
+	cast: boolean;
+	letterboxdRating: boolean;
+	studios: boolean;
+	countries: boolean;
+}
+
 export interface LetterboxdSyncSettings {
 	outputFolder: string;
 	downloadPosters: boolean;
 	posterFolder: string;
 	templateFormat: string;
+	customTemplate: string;
+	skipExisting: boolean;
+	metadataFields: MetadataFieldsConfig;
+	rateLimitDelay: number;
 }
