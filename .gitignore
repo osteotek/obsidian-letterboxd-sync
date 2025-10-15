@@ -1,6 +1,49 @@
-.DS_Store
+# ================================
+# Obsidian Plugin .gitignore
+# ================================
+
+# Node.js dependencies
 node_modules/
+
+# Build artifacts
 main.js
 main.js.map
+styles.css
+styles.css.map
+manifest.json
+
+# If you bundle build outputs into a `dist/` folder
+dist/
+build/
+
+# TypeScript cache & temporary files
+*.tsbuildinfo
 *.log
-package-lock.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDEs & editors
+.vscode/
+.idea/
+*.iml
+
+# Environment files (if you have private API keys etc.)
+.env
+.env.local
+.env.*
+
+# Backup files
+*.bak
+*~
+
+# ================================
+# Keep these tracked:
+#   - manifest.json (required by Obsidian)
+#   - package.json
+#   - package-lock.json
+#   - src/
+#   - README.md
+#   - LICENSE
+# ================================
