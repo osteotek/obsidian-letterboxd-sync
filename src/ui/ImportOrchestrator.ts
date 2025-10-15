@@ -10,7 +10,7 @@ export interface ImportFile {
 }
 
 export interface ImportCallbacks {
-	onProgress?: (current: number, total: number, movieName: string, posterUrl?: string) => void;
+	onProgress?: (current: number, total: number, movieName: string, posterUrl?: string, success?: boolean) => void;
 	onFileStart?: (fileName: string, fileNumber: number, totalFiles: number) => void;
 	isCancelled?: () => boolean;
 }

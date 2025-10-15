@@ -12,12 +12,16 @@ export class StatsDisplay {
 		filesProcessed?: HTMLElement;
 		timeElapsed?: HTMLElement;
 		timeRemaining?: HTMLElement;
+		successCount?: HTMLElement;
+		errorCount?: HTMLElement;
 	};
 	startTime: number;
 	timerHandle: number | null;
 	isActive: boolean;
 	totalMovies: number;
 	processedMovies: number;
+	successCount: number;
+	errorCount: number;
 
 	constructor(container: HTMLElement) {
 		this.container = container;
@@ -27,6 +31,8 @@ export class StatsDisplay {
 		this.isActive = true;
 		this.totalMovies = 0;
 		this.processedMovies = 0;
+		this.successCount = 0;
+		this.errorCount = 0;
 		this.buildUI();
 	}
 
@@ -89,6 +95,22 @@ export class StatsDisplay {
 		timeRemainingCard.createEl('div', { text: 'Time Remaining', cls: 'letterboxd-stat-label' });
 		this.elements.timeRemaining = timeRemainingCard.createEl('div', { 
 			text: 'Calculating...', 
+			cls: 'letterboxd-stat-value' 
+		});
+
+		// Success count
+		const successCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card letterboxd-stat-success' });
+		successCard.createEl('div', { text: 'Success', cls: 'letterboxd-stat-label' });
+		this.elements.successCount = successCard.createEl('div', { 
+			text: '0', 
+			cls: 'letterboxd-stat-value' 
+		});
+
+		// Error count
+		const errorCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card letterboxd-stat-error' });
+		errorCard.createEl('div', { text: 'Errors', cls: 'letterboxd-stat-label' });
+		this.elements.errorCount = errorCard.createEl('div', { 
+			text: '0', 
 			cls: 'letterboxd-stat-value' 
 		});
 	}
@@ -182,6 +204,27 @@ export class StatsDisplay {
 		if (this.elements.filesProcessed) {
 			this.elements.filesProcessed.setText(`${current}/${total}`);
 		}
+	}
+
+	incrementSuccess(): void {
+		this.successCount++;
+		if (this.elements.successCount) {
+			this.elements.successCount.setText(this.successCount.toString());
+		}
+	}
+
+	incrementError(): void {
+		this.errorCount++;
+		if (this.elements.errorCount) {
+			this.elements.errorCount.setText(this.errorCount.toString());
+		}
+	}
+
+	getStats(): { success: number; error: number } {
+		return {
+			success: this.successCount,
+			error: this.errorCount
+		};
 	}
 
 	cleanup(): void {

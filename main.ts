@@ -5,6 +5,8 @@ import { StatsDisplay } from './src/ui/StatsDisplay';
 import { InstructionsBuilder } from './src/ui/InstructionsBuilder';
 import { ImportOrchestrator, ImportFile } from './src/ui/ImportOrchestrator';
 import { ImportState, ImportStatus } from './src/ui/ImportState';
+import { validateLetterboxdCSV } from './src/csvParser';
+import { SummaryModal } from './src/ui/SummaryModal';
 
 export default class LetterboxdSyncPlugin extends Plugin {
 	settings: LetterboxdSyncSettings;
@@ -43,6 +45,8 @@ class ImportModal extends Modal {
 	private statsDisplay: StatsDisplay | null = null;
 	private importState: ImportState;
 	private orchestrator: ImportOrchestrator;
+	private importButton: HTMLButtonElement | null = null;
+	private cancelButton: HTMLButtonElement | null = null;
 
 	constructor(app: App, plugin: LetterboxdSyncPlugin) {
 		super(app);
@@ -70,6 +74,9 @@ class ImportModal extends Modal {
 
 		// Setup file selectors and buttons
 		this.setupFileSelectors();
+
+		// Setup keyboard shortcuts
+		this.setupKeyboardShortcuts();
 	}
 
 	private setupFileSelectors(): void {
@@ -96,20 +103,20 @@ class ImportModal extends Modal {
 
 		const buttonContainer = this.fileSelectorsContainer.parentElement!.createDiv({ cls: 'modal-button-container' });
 
-		const importButton = buttonContainer.createEl('button', {
+		this.importButton = buttonContainer.createEl('button', {
 			text: 'Import',
 			cls: 'mod-cta'
 		});
-		importButton.disabled = true;
+		this.importButton.disabled = true;
 
 		const updateImportButtonState = () => {
 			if (this.importState.isImporting()) {
 				return;
 			}
 			const hasFile = fileSelectors.some(sel => sel.input.files?.length);
-			importButton.disabled = !hasFile;
+			this.importButton!.disabled = !hasFile;
 			if (hasFile) {
-				importButton.setText('Import');
+				this.importButton!.setText('Import');
 			}
 		};
 
@@ -125,42 +132,78 @@ class ImportModal extends Modal {
 		});
 		updateImportButtonState();
 
-		importButton.addEventListener('click', async () => {
-			const files: ImportFile[] = selectorConfigs
-				.map(cfg => {
-					const file = fileSelectors.find(sel => sel.key === cfg.key)?.input.files?.[0];
-					return file ? { key: cfg.key, label: cfg.label, file } : null;
-				})
-				.filter((item): item is ImportFile => Boolean(item));
-
-			if (files.length === 0) {
-				new Notice('Please select at least one CSV file.');
-				return;
-			}
-
-			await this.startImport(files, fileSelectors, importButton, cancelButton);
+		this.importButton.addEventListener('click', async () => {
+			await this.handleImport(fileSelectors, selectorConfigs);
 		});
 
-		const cancelButton = buttonContainer.createEl('button', {
+		this.cancelButton = buttonContainer.createEl('button', {
 			text: 'Cancel'
 		});
 
-		cancelButton.addEventListener('click', () => {
+		this.cancelButton.addEventListener('click', () => {
 			if (this.importState.isImporting()) {
 				this.importState.cancel();
-				cancelButton.disabled = true;
-				cancelButton.setText('Cancelling...');
+				this.cancelButton!.disabled = true;
+				this.cancelButton!.setText('Cancelling...');
 			} else {
 				this.close();
 			}
 		});
 	}
 
+	private async handleImport(
+		fileSelectors: Array<{ key: 'diary' | 'watched' | 'watchlist'; input: HTMLInputElement }>,
+		selectorConfigs: Array<{ key: 'diary' | 'watched' | 'watchlist'; label: string }>
+	): Promise<void> {
+		const files: ImportFile[] = selectorConfigs
+			.map(cfg => {
+				const file = fileSelectors.find(sel => sel.key === cfg.key)?.input.files?.[0];
+				return file ? { key: cfg.key, label: cfg.label, file } : null;
+			})
+			.filter((item): item is ImportFile => Boolean(item));
+
+		if (files.length === 0) {
+			new Notice('Please select at least one CSV file.');
+			return;
+		}
+
+		// Validate all CSV files before starting
+		for (const { file, key } of files) {
+			const csvContent = await file.text();
+			const validation = validateLetterboxdCSV(csvContent);
+			
+			if (!validation.valid) {
+				new Notice(`Invalid ${key}.csv: ${validation.error}`);
+				return;
+			}
+			
+			new Notice(`${key}.csv validated: ${validation.movieCount} movies found`);
+		}
+
+		await this.startImport(files, fileSelectors);
+	}
+
+	private setupKeyboardShortcuts(): void {
+		this.scope.register([], 'Enter', (evt) => {
+			evt.preventDefault();
+			if (!this.importState.isImporting() && this.importButton && !this.importButton.disabled) {
+				this.importButton.click();
+			}
+			return false;
+		});
+
+		this.scope.register([], 'Escape', (evt) => {
+			evt.preventDefault();
+			if (this.cancelButton) {
+				this.cancelButton.click();
+			}
+			return false;
+		});
+	}
+
 	private async startImport(
 		files: ImportFile[],
-		fileSelectors: Array<{ key: 'diary' | 'watched' | 'watchlist'; input: HTMLInputElement }>,
-		importButton: HTMLButtonElement,
-		cancelButton: HTMLButtonElement
+		fileSelectors: Array<{ key: 'diary' | 'watched' | 'watchlist'; input: HTMLInputElement }>
 	): Promise<void> {
 		try {
 			// Set up cancellation
@@ -170,7 +213,7 @@ class ImportModal extends Modal {
 			});
 
 			// UI state changes
-			importButton.style.display = 'none';
+			this.importButton!.style.display = 'none';
 			fileSelectors.forEach(({ input }) => {
 				input.disabled = true;
 			});
@@ -186,13 +229,18 @@ class ImportModal extends Modal {
 			this.statsDisplay.startTimer();
 
 			// Reset cancel button
-			cancelButton.disabled = false;
-			cancelButton.setText('Cancel');
+			this.cancelButton!.disabled = false;
+			this.cancelButton!.setText('Cancel');
 
 			// Run import
 			await this.orchestrator.import(files, {
-				onProgress: (current, total, movieName, posterUrl) => {
+				onProgress: (current, total, movieName, posterUrl, success) => {
 					this.statsDisplay?.updateProgress(current, total, movieName, posterUrl);
+					if (success === true) {
+						this.statsDisplay?.incrementSuccess();
+					} else if (success === false) {
+						this.statsDisplay?.incrementError();
+					}
 				},
 				onFileStart: (fileName, fileNum, totalFiles) => {
 					this.statsDisplay?.setCurrentFile(fileName);
@@ -203,31 +251,62 @@ class ImportModal extends Modal {
 
 			if (!cancelled) {
 				this.importState.complete();
-				this.close();
+				this.showSummaryAndClose();
 			} else {
-				this.handleImportCancelled(fileSelectors, importButton, cancelButton);
+				this.handleImportCancelled(fileSelectors);
 			}
 		} catch (error) {
 			console.error('Import error:', error);
 			new Notice(`Import failed: ${error.message}`);
 			this.importState.error();
-			this.handleImportCancelled(fileSelectors, importButton, cancelButton);
+			this.handleImportCancelled(fileSelectors);
 		}
 	}
 
+	private showSummaryAndClose(): void {
+		if (!this.statsDisplay) {
+			this.close();
+			return;
+		}
+
+		const stats = this.statsDisplay.getStats();
+		const timeElapsed = this.statsDisplay.elements.timeElapsed?.getText() || '0s';
+		
+		this.close();
+		
+		// Show summary modal
+		new SummaryModal(this.app, {
+			success: stats.success,
+			error: stats.error,
+			timeElapsed: timeElapsed,
+			cancelled: false
+		}).open();
+	}
+
 	private handleImportCancelled(
-		fileSelectors: Array<{ input: HTMLInputElement }>,
-		importButton: HTMLButtonElement,
-		cancelButton: HTMLButtonElement
+		fileSelectors: Array<{ input: HTMLInputElement }>
 	): void {
+		if (this.statsDisplay) {
+			const stats = this.statsDisplay.getStats();
+			const timeElapsed = this.statsDisplay.elements.timeElapsed?.getText() || '0s';
+			
+			// Show summary for cancelled import
+			new SummaryModal(this.app, {
+				success: stats.success,
+				error: stats.error,
+				timeElapsed: timeElapsed,
+				cancelled: true
+			}).open();
+		}
+
 		this.instructionsContainer.style.display = 'block';
 		this.fileSelectorsContainer.style.display = 'block';
 		this.statsContainer.style.display = 'none';
-		importButton.style.display = 'block';
-		importButton.disabled = false;
-		importButton.setText('Import');
-		cancelButton.disabled = false;
-		cancelButton.setText('Cancel');
+		this.importButton!.style.display = 'block';
+		this.importButton!.disabled = false;
+		this.importButton!.setText('Import');
+		this.cancelButton!.disabled = false;
+		this.cancelButton!.setText('Cancel');
 		fileSelectors.forEach(({ input }) => {
 			input.disabled = false;
 		});

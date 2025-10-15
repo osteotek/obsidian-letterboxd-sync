@@ -1,5 +1,68 @@
 import { LetterboxdMovie } from './types';
 
+export interface CSVValidationResult {
+	valid: boolean;
+	error?: string;
+	movieCount?: number;
+}
+
+export function validateLetterboxdCSV(csvContent: string): CSVValidationResult {
+	try {
+		const lines = csvContent.trim().split('\n');
+		
+		if (lines.length < 2) {
+			return { valid: false, error: 'CSV file is empty or contains only a header' };
+		}
+
+		const headerFields = parseCSVLine(lines[0]);
+		const headerIndex = new Map<string, number>();
+		headerFields.forEach((field, index) => {
+			headerIndex.set(field.trim(), index);
+		});
+
+		const requiredHeaders = ['Name', 'Year', 'Letterboxd URI'];
+		for (const header of requiredHeaders) {
+			if (!headerIndex.has(header)) {
+				return { 
+					valid: false, 
+					error: `Missing required column: ${header}. Please use diary.csv, watched.csv, or watchlist.csv from Letterboxd.` 
+				};
+			}
+		}
+
+		const hasAnyDate = headerIndex.has('Watched Date') || headerIndex.has('Date');
+		if (!hasAnyDate) {
+			return { 
+				valid: false, 
+				error: 'CSV is missing date information. Please use diary.csv, watched.csv, or watchlist.csv from Letterboxd.' 
+			};
+		}
+
+		const dataLines = lines.slice(1);
+		let validMovieCount = 0;
+		
+		for (const line of dataLines) {
+			if (!line.trim()) continue;
+			
+			const fields = parseCSVLine(line);
+			const name = getField(fields, headerIndex, 'Name');
+			const uri = getField(fields, headerIndex, 'Letterboxd URI');
+			
+			if (name && uri) {
+				validMovieCount++;
+			}
+		}
+
+		if (validMovieCount === 0) {
+			return { valid: false, error: 'No valid movie entries found in CSV' };
+		}
+
+		return { valid: true, movieCount: validMovieCount };
+	} catch (error) {
+		return { valid: false, error: `CSV parsing error: ${error.message}` };
+	}
+}
+
 export function parseLetterboxdCSV(csvContent: string): LetterboxdMovie[] {
 	const lines = csvContent.trim().split('\n');
 	if (lines.length < 2) {

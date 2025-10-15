@@ -4,7 +4,7 @@ import { parseLetterboxdCSV } from './csvParser';
 import { fetchMoviePageData, downloadPoster } from './dataFetcher';
 import { generateMovieNote, sanitizeFileName } from './noteGenerator';
 
-type ImportProgressCallback = (current: number, total: number, movie: string, posterUrl?: string) => void;
+type ImportProgressCallback = (current: number, total: number, movie: string, posterUrl?: string, success?: boolean) => void;
 
 interface ImportOptions {
 	sourceName?: string;
@@ -70,12 +70,15 @@ export async function importLetterboxdCSV(
 		try {
 			await importMovie(app, movie, settings, options?.sourceName, (posterUrl?: string) => {
 				if (options?.onProgress) {
-					options.onProgress(i + 1, movies.length, movie.name, posterUrl);
+					options.onProgress(i + 1, movies.length, movie.name, posterUrl, true);
 				}
 			});
 			successCount++;
 		} catch (error) {
 			console.error(`Failed to import ${movie.name}:`, error);
+			if (options?.onProgress) {
+				options.onProgress(i + 1, movies.length, movie.name, undefined, false);
+			}
 			failCount++;
 		}
 
