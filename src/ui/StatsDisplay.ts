@@ -67,13 +67,26 @@ export class StatsDisplay {
 			cls: 'letterboxd-stat-value' 
 		});
 
-		// Progress bar card
+		// Progress bar card with success/error counts
 		const progressCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card letterboxd-stat-card-wide' });
 		progressCard.createEl('div', { text: 'Progress', cls: 'letterboxd-stat-label' });
-		this.elements.progress = progressCard.createEl('div', { 
+		
+		// Progress count and status inline
+		const progressHeader = progressCard.createDiv({ cls: 'letterboxd-progress-header' });
+		this.elements.progress = progressHeader.createEl('div', { 
 			text: '0/0', 
 			cls: 'letterboxd-stat-value letterboxd-stat-progress' 
 		});
+		
+		const statusCounts = progressHeader.createDiv({ cls: 'letterboxd-status-counts' });
+		const successSpan = statusCounts.createEl('span', { cls: 'letterboxd-status-success' });
+		successSpan.createEl('span', { text: '✓ ', cls: 'letterboxd-status-icon' });
+		this.elements.successCount = successSpan.createEl('span', { text: '0' });
+		
+		const errorSpan = statusCounts.createEl('span', { cls: 'letterboxd-status-error' });
+		errorSpan.createEl('span', { text: '✗ ', cls: 'letterboxd-status-icon' });
+		this.elements.errorCount = errorSpan.createEl('span', { text: '0' });
+		
 		const progressBarContainer = progressCard.createDiv({ cls: 'letterboxd-progress-bar-container' });
 		this.progressBarElement = progressBarContainer.createDiv({ cls: 'letterboxd-progress-bar' });
 		this.progressBarElement.style.width = '0%';
@@ -95,22 +108,6 @@ export class StatsDisplay {
 		timeRemainingCard.createEl('div', { text: 'Time Remaining', cls: 'letterboxd-stat-label' });
 		this.elements.timeRemaining = timeRemainingCard.createEl('div', { 
 			text: 'Calculating...', 
-			cls: 'letterboxd-stat-value' 
-		});
-
-		// Success count
-		const successCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card letterboxd-stat-success' });
-		successCard.createEl('div', { text: 'Success', cls: 'letterboxd-stat-label' });
-		this.elements.successCount = successCard.createEl('div', { 
-			text: '0', 
-			cls: 'letterboxd-stat-value' 
-		});
-
-		// Error count
-		const errorCard = statsGrid.createDiv({ cls: 'letterboxd-stat-card letterboxd-stat-error' });
-		errorCard.createEl('div', { text: 'Errors', cls: 'letterboxd-stat-label' });
-		this.elements.errorCount = errorCard.createEl('div', { 
-			text: '0', 
 			cls: 'letterboxd-stat-value' 
 		});
 	}
