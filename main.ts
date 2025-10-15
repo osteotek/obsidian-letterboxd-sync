@@ -46,18 +46,17 @@ class ImportModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl('h2', { text: 'Import Letterboxd CSV' });
+		contentEl.createEl('h2', { text: 'Import Letterboxd CSVs' });
 
-		const intro = contentEl.createEl('p', {
-			text: 'Choose a Letterboxd CSV export. Notes and metadata will be created using your current plugin settings.'
-		});
-		intro.addClass('setting-item-description');
+		contentEl.createEl('p', {
+			text: 'Attach diary.csv, watched.csv, and/or watchlist.csv from your export. Selected files import sequentially using the settings below.'
+		}).addClass('setting-item-description');
 
 		const stepsList = contentEl.createEl('ol');
 		stepsList.addClass('letterboxd-import-steps');
-		stepsList.createEl('li', { text: 'Export your diary at Letterboxd → Settings → Data → Export.' });
-		stepsList.createEl('li', { text: 'Unzip the download and locate the CSV you want to import (for example, watched.csv).' });
-		stepsList.createEl('li', { text: 'Select the CSV below and click Import to generate notes.' });
+		stepsList.createEl('li', { text: 'Export your data at Letterboxd → Settings → Data → Export.' });
+		stepsList.createEl('li', { text: 'Unzip the download and grab diary.csv, watched.csv, and watchlist.csv as needed.' });
+		stepsList.createEl('li', { text: 'Select any combination below. They import in the order shown.' });
 
 		const summary = contentEl.createDiv({ cls: 'letterboxd-summary' });
 		summary.createEl('h3', { text: 'Current settings' });
@@ -68,104 +67,137 @@ class ImportModal extends Modal {
 			: 'Posters will remain on Letterboxd; notes will link to the online image.';
 		summaryList.createEl('li', { text: posterSummary });
 		summaryList.createEl('li', {
-			text: 'Status rules: diary.csv or watched.csv → Watched, watchlist.csv → Want to Watch.'
+			text: 'Status rules: diary & watched imports → Watched, watchlist import → Want to Watch, others use the watched date.'
 		});
 		summaryList.createEl('li', {
-			text: 'Supported files: diary.csv, watched.csv, watchlist.csv.'
+			text: 'Supported files: diary.csv, watched.csv, watchlist.csv (select any combination).'
 		});
 
-		const fileSetting = contentEl.createDiv({ cls: 'setting-item' });
-		const fileInfo = fileSetting.createDiv({ cls: 'setting-item-info' });
-		fileInfo.createEl('div', { text: 'CSV file' });
-		fileInfo.createEl('div', {
-			cls: 'setting-item-description',
-			text: 'Select diary.csv, watched.csv, or watchlist.csv from the Letterboxd export ZIP.'
-		});
-		const fileControl = fileSetting.createDiv({ cls: 'setting-item-control' });
-		const fileInput = fileControl.createEl('input', {
-			attr: {
-				type: 'file',
-				accept: '.csv'
-			}
-		});
+		contentEl.createEl('p', {
+			text: 'Leave a selector empty to skip that dataset.'
+		}).addClass('setting-item-description');
+
+		const selectorConfigs = [
+			{ key: 'diary' as const, label: 'Diary entries (diary.csv)' },
+			{ key: 'watched' as const, label: 'Watched log (watched.csv)' },
+			{ key: 'watchlist' as const, label: 'Watchlist (watchlist.csv)' }
+		];
+
+		const fileSelectors: Array<{ key: typeof selectorConfigs[number]['key']; input: HTMLInputElement }> = [];
+
+		for (const { key, label } of selectorConfigs) {
+			const settingItem = contentEl.createDiv({ cls: 'setting-item' });
+			const info = settingItem.createDiv({ cls: 'setting-item-info' });
+			info.createEl('div', { text: label });
+			info.createEl('div', {
+				cls: 'setting-item-description',
+				text: `Optional. Select ${key}.csv if you want to import it.`
+			});
+			const control = settingItem.createDiv({ cls: 'setting-item-control' });
+			const input = control.createEl('input', { attr: { type: 'file', accept: '.csv' } });
+			fileSelectors.push({ key, input });
+		}
 
 		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
-		
-	const importButton = buttonContainer.createEl('button', {
-		text: 'Import',
-		cls: 'mod-cta'
-	});
-	importButton.disabled = true;
-	let isImporting = false;
-	let cancelled = false;
 
-		fileInput.addEventListener('change', () => {
-			const hasFile = Boolean(fileInput.files?.length);
+		const importButton = buttonContainer.createEl('button', {
+			text: 'Import',
+			cls: 'mod-cta'
+		});
+		importButton.disabled = true;
+
+		let isImporting = false;
+		let cancelled = false;
+
+		const updateImportButtonState = () => {
+			const hasFile = fileSelectors.some(sel => sel.input.files?.length);
 			importButton.disabled = !hasFile;
 			if (hasFile) {
 				importButton.setText('Import');
-				if (!isSupportedCsv(fileInput.files![0]!.name)) {
-					new Notice('Unsupported CSV. Use diary.csv, watched.csv, or watchlist.csv.');
+			}
+		};
+
+		fileSelectors.forEach(({ input, key }) => {
+			input.addEventListener('change', () => {
+				const file = input.files?.[0];
+				if (file && !isSupportedCsv(file.name, key)) {
+					new Notice(`Please select ${key}.csv for this field.`);
+					input.value = '';
 				}
+				updateImportButtonState();
+			});
+		});
+		updateImportButtonState();
+
+		importButton.addEventListener('click', async () => {
+			const queue = selectorConfigs
+				.map(cfg => {
+					const file = fileSelectors.find(sel => sel.key === cfg.key)?.input.files?.[0];
+					return file ? { cfg, file } : null;
+				})
+				.filter((item): item is { cfg: typeof selectorConfigs[number]; file: File } => Boolean(item));
+
+			if (queue.length === 0) {
+				new Notice('Please select at least one CSV file.');
+				return;
+			}
+
+			try {
+				isImporting = true;
+				cancelled = false;
+				importButton.disabled = true;
+				importButton.setText('Importing...');
+
+				for (const { cfg, file } of queue) {
+					const csvContent = await file.text();
+					await importLetterboxdCSV(
+						this.app,
+						csvContent,
+						this.plugin.settings,
+						{
+							sourceName: `${cfg.key}.csv`,
+							onProgress: (current, total, movieName) => {
+								importButton.setText(`Importing ${cfg.label}: ${current}/${total} – ${movieName}...`);
+							},
+							isCancelled: () => cancelled
+						}
+					);
+
+					if (cancelled) {
+						break;
+					}
+				}
+
+				if (!cancelled) {
+					this.close();
+				} else {
+					importButton.disabled = false;
+					importButton.setText('Import');
+					cancelButton.disabled = false;
+				}
+			} catch (error) {
+				console.error('Import error:', error);
+				new Notice(`Import failed: ${error.message}`);
+				importButton.disabled = false;
+				importButton.setText('Import');
+			} finally {
+				isImporting = false;
 			}
 		});
 
-		importButton.addEventListener('click', async () => {
-			const file = fileInput.files?.[0];
-			if (!file) {
-				new Notice('Please select a CSV file');
-				return;
+		const cancelButton = buttonContainer.createEl('button', {
+			text: 'Cancel'
+		});
+
+		cancelButton.addEventListener('click', () => {
+			if (isImporting) {
+				cancelled = true;
+				cancelButton.disabled = true;
+				importButton.setText('Cancelling...');
+			} else {
+				this.close();
 			}
-
-			if (!isSupportedCsv(file.name)) {
-				new Notice('Unsupported CSV. Use diary.csv, watched.csv, or watchlist.csv.');
-				return;
-			}
-
-		try {
-			isImporting = true;
-			cancelled = false;
-			importButton.disabled = true;
-			importButton.setText('Importing...');
-
-			const csvContent = await file.text();
-			
-			await importLetterboxdCSV(
-				this.app,
-				csvContent,
-				this.plugin.settings,
-				{
-					sourceName: file.name,
-					onProgress: (current, total, movieName) => {
-						importButton.setText(`Importing ${current}/${total}: ${movieName}...`);
-					},
-					isCancelled: () => cancelled
-				}
-			);
-
-			this.close();
-		} catch (error) {
-				console.error('Import error:', error);
-				new Notice(`Import failed: ${error.message}`);
-			importButton.disabled = false;
-			importButton.setText('Import');
-		}
-		isImporting = false;
-	});
-
-	const cancelButton = buttonContainer.createEl('button', {
-		text: 'Cancel'
-	});
-
-	cancelButton.addEventListener('click', () => {
-		if (isImporting) {
-			cancelled = true;
-			cancelButton.disabled = true;
-			importButton.setText('Cancelling...');
-		} else {
-			this.close();
-		}
-	});
+		});
 	}
 
 	onClose() {
@@ -174,7 +206,10 @@ class ImportModal extends Modal {
 	}
 }
 
-function isSupportedCsv(fileName: string): boolean {
+function isSupportedCsv(fileName: string, expected?: 'diary' | 'watched' | 'watchlist'): boolean {
 	const lower = fileName.toLowerCase();
+	if (expected) {
+		return lower.endsWith(`${expected}.csv`);
+	}
 	return lower.endsWith('diary.csv') || lower.endsWith('watched.csv') || lower.endsWith('watchlist.csv');
 }
