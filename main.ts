@@ -41,12 +41,14 @@ class ImportModal extends Modal {
 	private plugin: LetterboxdSyncPlugin;
 	private instructionsContainer: HTMLElement;
 	private fileSelectorsContainer: HTMLElement;
+	private optionsContainer: HTMLElement;
 	private statsContainer: HTMLElement;
 	private statsDisplay: StatsDisplay | null = null;
 	private importState: ImportState;
 	private orchestrator: ImportOrchestrator;
 	private importButton: HTMLButtonElement | null = null;
 	private cancelButton: HTMLButtonElement | null = null;
+	private skipExistingCheckbox: HTMLInputElement | null = null;
 
 	constructor(app: App, plugin: LetterboxdSyncPlugin) {
 		super(app);
@@ -68,12 +70,16 @@ class ImportModal extends Modal {
 		// File selectors container
 		this.fileSelectorsContainer = contentEl.createDiv({ cls: 'letterboxd-file-selectors' });
 
+		// Import options container
+		this.optionsContainer = contentEl.createDiv({ cls: 'letterboxd-import-options' });
+
 		// Stats container (hidden initially)
 		this.statsContainer = contentEl.createDiv({ cls: 'letterboxd-stats' });
 		this.statsContainer.style.display = 'none';
 
-		// Setup file selectors and buttons
+		// Setup file selectors, options, and buttons
 		this.setupFileSelectors();
+		this.setupImportOptions();
 
 		// Setup keyboard shortcuts
 		this.setupKeyboardShortcuts();
@@ -81,33 +87,52 @@ class ImportModal extends Modal {
 
 	private setupFileSelectors(): void {
 		const selectorConfigs = [
-			{ key: 'diary' as const, label: 'Diary entries (diary.csv)' },
-			{ key: 'watched' as const, label: 'Watched log (watched.csv)' },
-			{ key: 'watchlist' as const, label: 'Watchlist (watchlist.csv)' }
+			{ key: 'diary' as const, label: 'Diary entries', filename: 'diary.csv', desc: 'Diary entries with dates and ratings' },
+			{ key: 'watched' as const, label: 'Watched log', filename: 'watched.csv', desc: 'All movies you\'ve watched' },
+			{ key: 'watchlist' as const, label: 'Watchlist', filename: 'watchlist.csv', desc: 'Movies you want to watch' }
 		];
 
-		const fileSelectors: Array<{ key: typeof selectorConfigs[number]['key']; input: HTMLInputElement }> = [];
+		const fileSelectors: Array<{ key: typeof selectorConfigs[number]['key']; input: HTMLInputElement; row: HTMLElement; filename: HTMLElement }> = [];
 
-		for (const { key, label } of selectorConfigs) {
-			const settingItem = this.fileSelectorsContainer.createDiv({ cls: 'setting-item' });
-			const info = settingItem.createDiv({ cls: 'setting-item-info' });
-			info.createEl('div', { text: label });
-			info.createEl('div', {
-				cls: 'setting-item-description',
-				text: `Optional. Select ${key}.csv if you want to import it.`
-			});
-			const control = settingItem.createDiv({ cls: 'setting-item-control' });
-			const input = control.createEl('input', { attr: { type: 'file', accept: '.csv' } });
-			fileSelectors.push({ key, input });
-		}
-
-		const buttonContainer = this.fileSelectorsContainer.parentElement!.createDiv({ cls: 'modal-button-container' });
-
-		this.importButton = buttonContainer.createEl('button', {
-			text: 'Import',
-			cls: 'mod-cta'
+		// Create single card container for all file selectors
+		const card = this.fileSelectorsContainer.createDiv({ cls: 'letterboxd-info-card letterboxd-files-card' });
+		
+		card.createEl('div', { text: '📁 Select CSV Files', cls: 'letterboxd-info-card-title' });
+		card.createEl('div', { 
+			text: 'Choose one or more CSV files from your Letterboxd export. All files are optional.',
+			cls: 'letterboxd-info-card-text'
 		});
-		this.importButton.disabled = true;
+
+		const filesContainer = card.createDiv({ cls: 'letterboxd-files-container' });
+
+		for (const { key, label, filename, desc } of selectorConfigs) {
+			const row = filesContainer.createDiv({ cls: 'letterboxd-file-row' });
+			
+			const labelContainer = row.createDiv({ cls: 'letterboxd-file-label' });
+			labelContainer.createEl('div', { text: label, cls: 'letterboxd-file-label-text' });
+			labelContainer.createEl('div', { text: desc, cls: 'letterboxd-file-label-desc' });
+			
+			const controlContainer = row.createDiv({ cls: 'letterboxd-file-control' });
+			
+			const fileNameDisplay = controlContainer.createDiv({ cls: 'letterboxd-file-filename' });
+			fileNameDisplay.setText('No file selected');
+			
+			const input = controlContainer.createEl('input', { 
+				attr: { type: 'file', accept: '.csv' },
+				cls: 'letterboxd-file-input'
+			});
+			
+			const chooseButton = controlContainer.createEl('button', { 
+				text: 'Choose File',
+				cls: 'letterboxd-file-choose-btn'
+			});
+			
+			chooseButton.addEventListener('click', () => {
+				input.click();
+			});
+			
+			fileSelectors.push({ key, input, row, filename: fileNameDisplay });
+		}
 
 		const updateImportButtonState = () => {
 			if (this.importState.isImporting()) {
@@ -120,16 +145,35 @@ class ImportModal extends Modal {
 			}
 		};
 
-		fileSelectors.forEach(({ input, key }) => {
+		fileSelectors.forEach(({ input, key, row, filename }) => {
 			input.addEventListener('change', () => {
 				const file = input.files?.[0];
-				if (file && !isSupportedCsv(file.name, key)) {
-					new Notice(`Please select ${key}.csv for this field.`);
-					input.value = '';
+				if (file) {
+					if (!isSupportedCsv(file.name, key)) {
+						new Notice(`Please select ${key}.csv for this field.`);
+						input.value = '';
+						filename.setText('No file selected');
+						row.removeClass('letterboxd-file-row-selected');
+					} else {
+						filename.setText(file.name);
+						row.addClass('letterboxd-file-row-selected');
+					}
+				} else {
+					filename.setText('No file selected');
+					row.removeClass('letterboxd-file-row-selected');
 				}
 				updateImportButtonState();
 			});
 		});
+
+		const buttonContainer = this.fileSelectorsContainer.parentElement!.createDiv({ cls: 'modal-button-container' });
+
+		this.importButton = buttonContainer.createEl('button', {
+			text: 'Import',
+			cls: 'mod-cta'
+		});
+		this.importButton.disabled = true;
+
 		updateImportButtonState();
 
 		this.importButton.addEventListener('click', async () => {
@@ -151,6 +195,28 @@ class ImportModal extends Modal {
 		});
 	}
 
+	private setupImportOptions(): void {
+		const card = this.optionsContainer.createDiv({ cls: 'letterboxd-info-card letterboxd-options-card' });
+		
+		card.createEl('div', { text: '⚙️ Import Options', cls: 'letterboxd-info-card-title' });
+		
+		const optionItem = card.createDiv({ cls: 'letterboxd-option-item' });
+		
+		const labelContainer = optionItem.createDiv({ cls: 'letterboxd-option-label' });
+		labelContainer.createEl('div', { text: 'Skip existing movies', cls: 'letterboxd-option-name' });
+		labelContainer.createEl('div', { 
+			text: 'Movies that already exist in your vault will not be updated or reimported',
+			cls: 'letterboxd-option-desc'
+		});
+		
+		const controlContainer = optionItem.createDiv({ cls: 'letterboxd-option-control' });
+		this.skipExistingCheckbox = controlContainer.createEl('input', { 
+			attr: { type: 'checkbox' },
+			cls: 'letterboxd-option-checkbox'
+		});
+		this.skipExistingCheckbox.checked = this.plugin.settings.skipExisting;
+	}
+
 	private async handleImport(
 		fileSelectors: Array<{ key: 'diary' | 'watched' | 'watchlist'; input: HTMLInputElement }>,
 		selectorConfigs: Array<{ key: 'diary' | 'watched' | 'watchlist'; label: string }>
@@ -167,20 +233,32 @@ class ImportModal extends Modal {
 			return;
 		}
 
-		// Validate all CSV files before starting
-		for (const { file, key } of files) {
-			const csvContent = await file.text();
-			const validation = validateLetterboxdCSV(csvContent);
-			
-			if (!validation.valid) {
-				new Notice(`Invalid ${key}.csv: ${validation.error}`);
-				return;
-			}
-			
-			new Notice(`${key}.csv validated: ${validation.movieCount} movies found`);
-		}
+		// Get skip existing setting from modal checkbox
+		const skipExisting = this.skipExistingCheckbox?.checked ?? false;
+		
+		// Temporarily update settings for this import
+		const originalSkipExisting = this.plugin.settings.skipExisting;
+		this.plugin.settings.skipExisting = skipExisting;
 
-		await this.startImport(files, fileSelectors);
+		try {
+			// Validate all CSV files before starting
+			for (const { file, key } of files) {
+				const csvContent = await file.text();
+				const validation = validateLetterboxdCSV(csvContent);
+				
+				if (!validation.valid) {
+					new Notice(`Invalid ${key}.csv: ${validation.error}`);
+					return;
+				}
+				
+				new Notice(`${key}.csv validated: ${validation.movieCount} movies found`);
+			}
+
+			await this.startImport(files, fileSelectors);
+		} finally {
+			// Restore original setting
+			this.plugin.settings.skipExisting = originalSkipExisting;
+		}
 	}
 
 	private setupKeyboardShortcuts(): void {
@@ -221,6 +299,7 @@ class ImportModal extends Modal {
 			// Show stats, hide instructions
 			this.instructionsContainer.style.display = 'none';
 			this.fileSelectorsContainer.style.display = 'none';
+			this.optionsContainer.style.display = 'none';
 			this.statsContainer.style.display = 'block';
 
 			// Initialize stats display
@@ -301,6 +380,7 @@ class ImportModal extends Modal {
 
 		this.instructionsContainer.style.display = 'block';
 		this.fileSelectorsContainer.style.display = 'block';
+		this.optionsContainer.style.display = 'block';
 		this.statsContainer.style.display = 'none';
 		this.importButton!.style.display = 'block';
 		this.importButton!.disabled = false;

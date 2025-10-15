@@ -1,12 +1,94 @@
-import { LetterboxdMovie, MovieMetadata } from './types';
+import { LetterboxdMovie, MovieMetadata, LetterboxdSyncSettings, MetadataFieldsConfig } from './types';
+
+interface TemplateData {
+	title: string;
+	year: string;
+	rating?: string;
+	cover?: string;
+	description?: string;
+	directors?: string[];
+	genres?: string[];
+	studios?: string[];
+	countries?: string[];
+	cast?: string[];
+	watched?: string;
+	rewatch?: boolean;
+	letterboxdUrl: string;
+	letterboxdRating?: string;
+	status: string;
+	coverImage?: string;
+}
 
 export function generateMovieNote(
 	movie: LetterboxdMovie, 
-	posterPath?: string,
-	metadata?: MovieMetadata,
-	resolvedUrl?: string,
-	posterLink?: string,
-	status = 'Watched'
+	posterPath: string | undefined,
+	metadata: MovieMetadata | undefined,
+	resolvedUrl: string | undefined,
+	posterLink: string | undefined,
+	status: string,
+	settings: LetterboxdSyncSettings
+): string {
+	const filteredMetadata = filterMetadata(metadata, settings.metadataFields);
+	
+	if (settings.templateFormat === 'custom' && settings.customTemplate) {
+		return generateFromCustomTemplate(movie, posterPath, filteredMetadata, resolvedUrl, posterLink, status, settings.customTemplate);
+	}
+	
+	return generateDefaultNote(movie, posterPath, filteredMetadata, resolvedUrl, posterLink, status);
+}
+
+function filterMetadata(metadata: MovieMetadata | undefined, fields: MetadataFieldsConfig): MovieMetadata | undefined {
+	if (!metadata) return undefined;
+	
+	return {
+		directors: fields.directors ? metadata.directors : [],
+		genres: fields.genres ? metadata.genres : [],
+		description: fields.description ? metadata.description : '',
+		cast: fields.cast ? metadata.cast : [],
+		letterboxdRating: fields.letterboxdRating ? metadata.letterboxdRating : undefined,
+		studios: fields.studios ? metadata.studios : [],
+		countries: fields.countries ? metadata.countries : []
+	};
+}
+
+function generateFromCustomTemplate(
+	movie: LetterboxdMovie,
+	posterPath: string | undefined,
+	metadata: MovieMetadata | undefined,
+	resolvedUrl: string | undefined,
+	posterLink: string | undefined,
+	status: string,
+	template: string
+): string {
+	const data: TemplateData = {
+		title: movie.name,
+		year: movie.year,
+		rating: movie.rating || undefined,
+		cover: posterPath ? `[[${posterPath}]]` : (posterLink || undefined),
+		description: metadata?.description || undefined,
+		directors: metadata?.directors && metadata.directors.length > 0 ? metadata.directors : undefined,
+		genres: metadata?.genres && metadata.genres.length > 0 ? metadata.genres : undefined,
+		studios: metadata?.studios && metadata.studios.length > 0 ? metadata.studios : undefined,
+		countries: metadata?.countries && metadata.countries.length > 0 ? metadata.countries : undefined,
+		cast: metadata?.cast && metadata.cast.length > 0 ? metadata.cast : undefined,
+		watched: movie.watchedDate || undefined,
+		rewatch: movie.rewatch && movie.rewatch.toLowerCase() === 'yes' ? true : undefined,
+		letterboxdUrl: normalizeLetterboxdUrl(resolvedUrl ?? movie.letterboxdUri),
+		letterboxdRating: metadata?.letterboxdRating || undefined,
+		status: status,
+		coverImage: posterPath ? `![[${posterPath}]]` : (posterLink ? `![${escapeYamlString(movie.name)} Poster](${posterLink})` : undefined)
+	};
+	
+	return renderTemplate(template, data);
+}
+
+function generateDefaultNote(
+	movie: LetterboxdMovie, 
+	posterPath: string | undefined,
+	metadata: MovieMetadata | undefined,
+	resolvedUrl: string | undefined,
+	posterLink: string | undefined,
+	status: string
 ): string {
 	const lines: string[] = [];
 	
@@ -104,6 +186,43 @@ export function generateMovieNote(
 	lines.push('');
 	
 	return lines.join('\n');
+}
+
+/**
+ * Simple Handlebars-style template renderer
+ */
+function renderTemplate(template: string, data: TemplateData): string {
+	let result = template;
+	
+	// Handle {{#if field}} ... {{/if}} blocks
+	result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, field, content) => {
+		const value = data[field as keyof TemplateData];
+		if (value !== undefined && value !== null && value !== false && 
+			!(Array.isArray(value) && value.length === 0)) {
+			return content;
+		}
+		return '';
+	});
+	
+	// Handle {{#each field}} ... {{/each}} blocks for arrays
+	result = result.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, field, content) => {
+		const value = data[field as keyof TemplateData];
+		if (Array.isArray(value)) {
+			return value.map(item => content.replace(/\{\{this\}\}/g, String(item))).join('');
+		}
+		return '';
+	});
+	
+	// Handle simple {{variable}} replacements
+	result = result.replace(/\{\{(\w+)\}\}/g, (match, field) => {
+		const value = data[field as keyof TemplateData];
+		if (value === undefined || value === null) return '';
+		if (typeof value === 'boolean') return '';
+		if (Array.isArray(value)) return '';
+		return String(value);
+	});
+	
+	return result;
 }
 
 export function sanitizeFileName(name: string): string {

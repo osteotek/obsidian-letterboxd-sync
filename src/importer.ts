@@ -36,8 +36,34 @@ export async function importLetterboxdCSV(
 			}
 		}
 		
+		// Filter out existing movies if skipExisting is enabled
+		if (settings.skipExisting) {
+			const outputFolder = normalizePath(settings.outputFolder);
+			const originalCount = movies.length;
+			const filteredMovies: LetterboxdMovie[] = [];
+			
+			for (const movie of movies) {
+				const fileNameBase = movie.year ? `${movie.name} (${movie.year})` : movie.name;
+				const fileName = sanitizeFileName(fileNameBase);
+				const filePath = normalizePath(`${outputFolder}/${fileName}.md`);
+				const existingFile = app.vault.getAbstractFileByPath(filePath);
+				
+				if (!existingFile) {
+					filteredMovies.push(movie);
+				}
+			}
+			
+			const skippedCount = originalCount - filteredMovies.length;
+			if (skippedCount > 0) {
+				console.log(`Skipped ${skippedCount} existing movies from ${options?.sourceName || 'CSV'}`);
+				new Notice(`Skipped ${skippedCount} existing movies`);
+			}
+			
+			movies = filteredMovies;
+		}
+		
 		if (movies.length === 0) {
-			new Notice('No movies found in CSV file (or all were duplicates)');
+			new Notice('No movies to import (all were duplicates or already exist)');
 			return;
 		}
 
@@ -82,8 +108,9 @@ export async function importLetterboxdCSV(
 			failCount++;
 		}
 
-		// Small delay to avoid overwhelming the system and rate limits
-		await sleep(200);
+		// Use configurable rate limiting delay
+		const delay = settings.rateLimitDelay ?? 200;
+		await sleep(delay);
 	}
 
 	if (cancelled) {
@@ -163,7 +190,8 @@ async function importMovie(
 		metadata,
 		resolvedMovieUrl,
 		posterLink,
-		status
+		status,
+		settings
 	);
 
 	if (existingTFile) {

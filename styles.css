@@ -130,6 +130,148 @@
 	margin-bottom: 20px;
 }
 
+/* Files card - single card containing all file selectors */
+.letterboxd-files-card {
+	margin-bottom: 20px;
+}
+
+.letterboxd-files-container {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	margin-top: 16px;
+}
+
+/* Individual file row within the card */
+.letterboxd-file-row {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 12px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	transition: all 0.2s ease;
+}
+
+.letterboxd-file-row:hover {
+	background: var(--background-primary-alt);
+	border-color: var(--interactive-accent);
+}
+
+.letterboxd-file-row-selected {
+	border-color: var(--interactive-accent);
+	background: var(--background-primary-alt);
+}
+
+.letterboxd-file-label {
+	flex: 1;
+	min-width: 0;
+}
+
+.letterboxd-file-label-text {
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 2px;
+}
+
+.letterboxd-file-label-desc {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	line-height: 1.3;
+}
+
+.letterboxd-file-control {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-shrink: 0;
+}
+
+.letterboxd-file-filename {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	font-family: monospace;
+	padding: 6px 10px;
+	background: var(--background-secondary);
+	border-radius: 4px;
+	min-width: 140px;
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.letterboxd-file-row-selected .letterboxd-file-filename {
+	color: var(--text-accent);
+	font-weight: 500;
+}
+
+.letterboxd-file-input {
+	display: none;
+}
+
+.letterboxd-file-choose-btn {
+	padding: 6px 16px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 500;
+	font-size: 0.9em;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+}
+
+.letterboxd-file-choose-btn:hover {
+	background: var(--interactive-accent-hover);
+	transform: scale(1.05);
+}
+
+/* Import options styling */
+.letterboxd-import-options {
+	margin-bottom: 20px;
+}
+
+.letterboxd-options-card {
+	margin-bottom: 20px;
+}
+
+.letterboxd-option-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px 0;
+}
+
+.letterboxd-option-label {
+	flex: 1;
+	margin-right: 20px;
+}
+
+.letterboxd-option-name {
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 4px;
+}
+
+.letterboxd-option-desc {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	line-height: 1.4;
+}
+
+.letterboxd-option-control {
+	flex-shrink: 0;
+}
+
+.letterboxd-option-checkbox {
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+
 /* Stats Display */
 .letterboxd-stats {
 	padding: 20px 0;
