@@ -1,0 +1,144 @@
+name: Release Obsidian Plugin
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Verify build artifacts
+        run: |
+          if [ ! -f main.js ]; then
+            echo "Error: main.js not found"
+            exit 1
+          fi
+          if [ ! -f manifest.json ]; then
+            echo "Error: manifest.json not found"
+            exit 1
+          fi
+          if [ ! -f styles.css ]; then
+            echo "Error: styles.css not found"
+            exit 1
+          fi
+          echo "✓ All required files present"
+          ls -lh main.js manifest.json styles.css
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+
+      - name: Check version consistency
+        run: |
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          
+          echo "Tag version: $TAG_VERSION"
+          echo "Manifest version: $MANIFEST_VERSION"
+          echo "Package version: $PACKAGE_VERSION"
+          
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) doesn't match manifest.json version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+          
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) doesn't match package.json version ($PACKAGE_VERSION)"
+            exit 1
+          fi
+          
+          echo "✓ Version consistency verified"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || echo "")
+          
+          # Generate release notes
+          if [ -z "$PREV_TAG" ]; then
+            echo "## 🎉 Initial Release" > release_notes.md
+            echo "" >> release_notes.md
+            echo "First release of Letterboxd Sync for Obsidian!" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### Features" >> release_notes.md
+            echo "- Import movie data from Letterboxd CSV exports" >> release_notes.md
+            echo "- Create markdown notes with movie metadata" >> release_notes.md
+            echo "- Download and embed movie posters" >> release_notes.md
+            echo "- Customizable templates and metadata fields" >> release_notes.md
+            echo "- Real-time progress tracking with success/error counts" >> release_notes.md
+          else
+            echo "## What's Changed" > release_notes.md
+            echo "" >> release_notes.md
+            
+            # Get commits since last tag
+            git log $PREV_TAG..$TAG --pretty=format:"- %s" --no-merges >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Download \`main.js\`, \`manifest.json\`, and \`styles.css\` from the assets below." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Place them in: \`.obsidian/plugins/letterboxd-sync/\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREV_TAG...$TAG" >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            main.js
+            manifest.json
+            styles.css
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: obsidian-letterboxd-sync-${{ steps.version.outputs.tag }}
+          path: |
+            main.js
+            manifest.json
+            styles.css
+

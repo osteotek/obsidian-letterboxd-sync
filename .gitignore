@@ -5,12 +5,9 @@
 # Node.js dependencies
 node_modules/
 
-# Build artifacts
+# Build artifacts (generated during build, not committed)
 main.js
 main.js.map
-styles.css
-styles.css.map
-manifest.json
 
 # If you bundle build outputs into a `dist/` folder
 dist/
@@ -38,13 +35,18 @@ Thumbs.db
 *.bak
 *~
 
+# Test data
+data.json
+
 # ================================
-# Keep these tracked:
-#   - manifest.json (required by Obsidian)
+# DO TRACK these files:
+#   - manifest.json (required by Obsidian - DO NOT IGNORE)
+#   - styles.css (required by Obsidian - DO NOT IGNORE)
+#   - versions.json (required for version tracking)
 #   - package.json
 #   - package-lock.json
 #   - src/
 #   - README.md
 #   - LICENSE
 # ================================
-data.json
+

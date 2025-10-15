@@ -174,7 +174,68 @@ npm test       # run tests
 
 ---
 
-## Advanced Tips
+## Releases
+
+### Create a Release
+
+**Easiest: GitHub Actions UI**
+1. Go to **Actions** → **Manual Release**
+2. Click **Run workflow**
+3. Enter version (e.g., `1.1.0`)
+4. Click **Run workflow**
+
+Done! Release created automatically with all files.
+
+**Via Command Line**
+```bash
+./scripts/prepare-release.sh 1.1.0
+git add .
+git commit -m "Release v1.1.0"
+git tag 1.1.0
+git push origin main --tags
+```
+
+### What Gets Automated
+
+**Automatic Release** (on tag push):
+- ✅ Validates version consistency
+- ✅ Runs tests
+- ✅ Builds plugin
+- ✅ Generates release notes from commits
+- ✅ Creates GitHub release
+- ✅ Attaches `main.js`, `manifest.json`, `styles.css`
+
+**Manual Release** (via GitHub UI):
+- ✅ Updates all version files
+- ✅ Runs tests and builds
+- ✅ Creates release (draft or published)
+- ✅ Commits changes back to repository
+- ✅ Supports pre-release marking
+
+### Version Format
+
+Use [Semantic Versioning](https://semver.org/):
+- `1.0.0 → 2.0.0` - Breaking changes
+- `1.0.0 → 1.1.0` - New features
+- `1.0.0 → 1.0.1` - Bug fixes
+
+### GitHub Actions Workflows
+
+1. **Release** - Automatic on tag push
+2. **Manual Release** - Via GitHub UI
+3. **Validate Release** - Checks PRs with version changes
+4. **PR Tests** - Runs tests on all PRs
+
+### Required Files
+
+Every release must include:
+- ✅ `main.js` - Compiled plugin
+- ✅ `manifest.json` - Plugin metadata
+- ✅ `styles.css` - Plugin styles
+
+---
+
+## Tips
 
 **Template Tips**:
 - Use `{{#if field}}` for conditional content
@@ -182,15 +243,51 @@ npm test       # run tests
 - Reset to default template anytime in settings
 
 **Import Tips**:
-- Validate CSVs before import starts automatically
-- Skip existing for incremental updates
+- CSV validation happens automatically before import
+- Skip existing movies for incremental updates
 - Cancel anytime with Esc key
 - Check console for detailed error logs
 
 **Performance**:
 - Disable unused metadata fields for faster imports
-- Increase rate limit delay if seeing errors
+- Increase rate limit delay if seeing errors (300-500ms)
 - Default 200ms works for most users
+
+**Release Tips**:
+- Use GitHub UI for easiest releases
+- Script method for detailed commit control
+- Version validation prevents mistakes
+- All workflows run tests automatically
+
+---
+
+## Troubleshooting
+
+**Import Issues**:
+- Ensure CSV files are from Letterboxd export
+- Check file names match expected format (diary.csv, watched.csv, watchlist.csv)
+- Verify CSV has required columns
+
+**Release Issues**:
+- Ensure versions match in manifest.json, package.json, and tag
+- Check GitHub Actions are enabled
+- Verify workflows exist in `.github/workflows/`
+
+**Build Issues**:
+- Run `npm ci` to clean install dependencies
+- Check Node.js version (18+)
+- Verify TypeScript compiles without errors
+
+---
+
+## Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests (`npm test`)
+5. Submit a pull request
 
 ---
 

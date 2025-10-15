@@ -1,0 +1,99 @@
+name: Validate Release
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'manifest.json'
+      - 'versions.json'
+      - 'package.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate version consistency
+        run: |
+          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          
+          echo "Manifest version: $MANIFEST_VERSION"
+          echo "Package version: $PACKAGE_VERSION"
+          
+          if [ "$MANIFEST_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "❌ Error: Version mismatch!"
+            echo "   manifest.json: $MANIFEST_VERSION"
+            echo "   package.json: $PACKAGE_VERSION"
+            exit 1
+          fi
+          
+          echo "✅ Version consistency verified: $MANIFEST_VERSION"
+
+      - name: Validate versions.json
+        run: |
+          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
+          MIN_APP_VERSION=$(jq -r '.minAppVersion' manifest.json)
+          
+          # Check if version exists in versions.json
+          if ! jq -e --arg v "$MANIFEST_VERSION" '.[$v]' versions.json > /dev/null; then
+            echo "❌ Error: Version $MANIFEST_VERSION not found in versions.json"
+            exit 1
+          fi
+          
+          VERSIONS_MIN_APP=$(jq -r --arg v "$MANIFEST_VERSION" '.[$v]' versions.json)
+          
+          if [ "$MIN_APP_VERSION" != "$VERSIONS_MIN_APP" ]; then
+            echo "❌ Error: minAppVersion mismatch!"
+            echo "   manifest.json: $MIN_APP_VERSION"
+            echo "   versions.json: $VERSIONS_MIN_APP"
+            exit 1
+          fi
+          
+          echo "✅ versions.json is valid"
+
+      - name: Validate manifest.json schema
+        run: |
+          # Check required fields
+          REQUIRED_FIELDS=("id" "name" "version" "minAppVersion" "description" "author" "authorUrl")
+          
+          for field in "${REQUIRED_FIELDS[@]}"; do
+            if ! jq -e --arg f "$field" '.[$f]' manifest.json > /dev/null; then
+              echo "❌ Error: Required field '$field' missing in manifest.json"
+              exit 1
+            fi
+          done
+          
+          echo "✅ manifest.json schema is valid"
+
+      - name: Validate semantic versioning
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Error: Invalid version format: $VERSION"
+            echo "   Use semantic versioning (e.g., 1.0.0)"
+            exit 1
+          fi
+          
+          echo "✅ Version follows semantic versioning"
+
+      - name: Check for breaking changes
+        run: |
+          # Compare minAppVersion with previous version
+          CURRENT_MIN=$(jq -r '.minAppVersion' manifest.json)
+          
+          # Get previous manifest.json from main branch
+          git fetch origin main
+          PREV_MIN=$(git show origin/main:manifest.json 2>/dev/null | jq -r '.minAppVersion' || echo "")
+          
+          if [ -n "$PREV_MIN" ] && [ "$CURRENT_MIN" != "$PREV_MIN" ]; then
+            echo "⚠️  Warning: minAppVersion changed from $PREV_MIN to $CURRENT_MIN"
+            echo "   This may require users to update Obsidian"
+          else
+            echo "✅ No breaking changes to minAppVersion"
+          fi
