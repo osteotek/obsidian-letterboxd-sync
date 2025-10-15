@@ -96,9 +96,9 @@ class ImportModal extends Modal {
 
 		// Create single card container for all file selectors
 		const card = this.fileSelectorsContainer.createDiv({ cls: 'letterboxd-info-card letterboxd-files-card' });
-		
+
 		card.createEl('div', { text: '📁 Select CSV Files', cls: 'letterboxd-info-card-title' });
-		card.createEl('div', { 
+		card.createEl('div', {
 			text: 'Choose one or more CSV files from your Letterboxd export. All files are optional.',
 			cls: 'letterboxd-info-card-text'
 		});
@@ -107,30 +107,30 @@ class ImportModal extends Modal {
 
 		for (const { key, label, filename, desc } of selectorConfigs) {
 			const row = filesContainer.createDiv({ cls: 'letterboxd-file-row' });
-			
+
 			const labelContainer = row.createDiv({ cls: 'letterboxd-file-label' });
 			labelContainer.createEl('div', { text: label, cls: 'letterboxd-file-label-text' });
 			labelContainer.createEl('div', { text: desc, cls: 'letterboxd-file-label-desc' });
-			
+
 			const controlContainer = row.createDiv({ cls: 'letterboxd-file-control' });
-			
+
 			const fileNameDisplay = controlContainer.createDiv({ cls: 'letterboxd-file-filename' });
 			fileNameDisplay.setText('No file selected');
-			
-			const input = controlContainer.createEl('input', { 
+
+			const input = controlContainer.createEl('input', {
 				attr: { type: 'file', accept: '.csv' },
 				cls: 'letterboxd-file-input'
 			});
-			
-			const chooseButton = controlContainer.createEl('button', { 
+
+			const chooseButton = controlContainer.createEl('button', {
 				text: 'Choose File',
 				cls: 'letterboxd-file-choose-btn'
 			});
-			
+
 			chooseButton.addEventListener('click', () => {
 				input.click();
 			});
-			
+
 			fileSelectors.push({ key, input, row, filename: fileNameDisplay });
 		}
 
@@ -197,20 +197,20 @@ class ImportModal extends Modal {
 
 	private setupImportOptions(): void {
 		const card = this.optionsContainer.createDiv({ cls: 'letterboxd-info-card letterboxd-options-card' });
-		
+
 		card.createEl('div', { text: '⚙️ Import Options', cls: 'letterboxd-info-card-title' });
-		
+
 		const optionItem = card.createDiv({ cls: 'letterboxd-option-item' });
-		
+
 		const labelContainer = optionItem.createDiv({ cls: 'letterboxd-option-label' });
 		labelContainer.createEl('div', { text: 'Skip existing movies', cls: 'letterboxd-option-name' });
-		labelContainer.createEl('div', { 
+		labelContainer.createEl('div', {
 			text: 'Movies that already exist in your vault will not be updated or reimported',
 			cls: 'letterboxd-option-desc'
 		});
-		
+
 		const controlContainer = optionItem.createDiv({ cls: 'letterboxd-option-control' });
-		this.skipExistingCheckbox = controlContainer.createEl('input', { 
+		this.skipExistingCheckbox = controlContainer.createEl('input', {
 			attr: { type: 'checkbox' },
 			cls: 'letterboxd-option-checkbox'
 		});
@@ -235,7 +235,7 @@ class ImportModal extends Modal {
 
 		// Get skip existing setting from modal checkbox
 		const skipExisting = this.skipExistingCheckbox?.checked ?? false;
-		
+
 		// Temporarily update settings for this import
 		const originalSkipExisting = this.plugin.settings.skipExisting;
 		this.plugin.settings.skipExisting = skipExisting;
@@ -245,12 +245,12 @@ class ImportModal extends Modal {
 			for (const { file, key } of files) {
 				const csvContent = await file.text();
 				const validation = validateLetterboxdCSV(csvContent);
-				
+
 				if (!validation.valid) {
 					new Notice(`Invalid ${key}.csv: ${validation.error}`);
 					return;
 				}
-				
+
 				new Notice(`${key}.csv validated: ${validation.movieCount} movies found`);
 			}
 
@@ -350,9 +350,9 @@ class ImportModal extends Modal {
 
 		const stats = this.statsDisplay.getStats();
 		const timeElapsed = this.statsDisplay.elements.timeElapsed?.getText() || '0s';
-		
+
 		this.close();
-		
+
 		// Show summary modal
 		new SummaryModal(this.app, {
 			success: stats.success,
@@ -368,7 +368,7 @@ class ImportModal extends Modal {
 		if (this.statsDisplay) {
 			const stats = this.statsDisplay.getStats();
 			const timeElapsed = this.statsDisplay.elements.timeElapsed?.getText() || '0s';
-			
+
 			// Show summary for cancelled import
 			new SummaryModal(this.app, {
 				success: stats.success,
@@ -409,9 +409,9 @@ class ImportModal extends Modal {
 	}
 }
 function isSupportedCsv(fileName: string, expected?: 'diary' | 'watched' | 'watchlist'): boolean {
-const lower = fileName.toLowerCase();
-if (expected) {
-return lower.endsWith(`${expected}.csv`);
-}
-return lower.endsWith('diary.csv') || lower.endsWith('watched.csv') || lower.endsWith('watchlist.csv');
+	const lower = fileName.toLowerCase();
+	if (expected) {
+		return lower.endsWith(`${expected}.csv`);
+	}
+	return lower.endsWith('diary.csv') || lower.endsWith('watched.csv') || lower.endsWith('watchlist.csv');
 }

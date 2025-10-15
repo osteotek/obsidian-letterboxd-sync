@@ -148,52 +148,159 @@ jobs:
           # Get previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || echo "")
           
-          if [ "${{ steps.release_type.outputs.type }}" = "manual" ]; then
-            cat > release_notes.md << EOF
-          ## Release v$VERSION
+          # Function to categorize commit
+          categorize_commit() {
+            local msg="$1"
+            local lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
+            
+            if echo "$lower" | grep -qE "^feat|^add|^new"; then
+              echo "features"
+            elif echo "$lower" | grep -qE "^fix|^bug|^patch"; then
+              echo "fixes"
+            elif echo "$lower" | grep -qE "^docs|^documentation"; then
+              echo "docs"
+            elif echo "$lower" | grep -qE "^refactor|^rewrite|^restructure"; then
+              echo "refactor"
+            elif echo "$lower" | grep -qE "^perf|^performance|^optimize"; then
+              echo "performance"
+            elif echo "$lower" | grep -qE "^test|^tests"; then
+              echo "tests"
+            elif echo "$lower" | grep -qE "^chore|^ci|^build|^deps"; then
+              echo "chore"
+            elif echo "$lower" | grep -qE "^style|^format"; then
+              echo "style"
+            elif echo "$lower" | grep -qE "^break|breaking"; then
+              echo "breaking"
+            else
+              echo "other"
+            fi
+          }
           
-          This release was created manually via GitHub Actions.
+          if [ "${{ steps.release_type.outputs.type }}" = "manual" ]; then
+            # Manual release with commit history
+            cat > release_notes.md << EOF
+          ## 📦 Release v$VERSION
           
           EOF
+            
+            if [ -n "$PREV_TAG" ]; then
+              # Parse commits into categories
+              declare -A categories
+              categories[breaking]=""
+              categories[features]=""
+              categories[fixes]=""
+              categories[performance]=""
+              categories[refactor]=""
+              categories[docs]=""
+              categories[tests]=""
+              categories[style]=""
+              categories[chore]=""
+              categories[other]=""
+              
+              while IFS= read -r commit; do
+                category=$(categorize_commit "$commit")
+                if [ -n "${categories[$category]}" ]; then
+                  categories[$category]="${categories[$category]}- $commit"$'\n'
+                else
+                  categories[$category]="- $commit"$'\n'
+                fi
+              done < <(git log $PREV_TAG..$TAG --pretty=format:"%s" --no-merges)
+              
+              # Output categorized changes
+              [ -n "${categories[breaking]}" ] && echo "### ⚠️ Breaking Changes" >> release_notes.md && echo "${categories[breaking]}" >> release_notes.md
+              [ -n "${categories[features]}" ] && echo "### ✨ Features" >> release_notes.md && echo "${categories[features]}" >> release_notes.md
+              [ -n "${categories[fixes]}" ] && echo "### 🐛 Bug Fixes" >> release_notes.md && echo "${categories[fixes]}" >> release_notes.md
+              [ -n "${categories[performance]}" ] && echo "### ⚡ Performance" >> release_notes.md && echo "${categories[performance]}" >> release_notes.md
+              [ -n "${categories[refactor]}" ] && echo "### ♻️ Refactoring" >> release_notes.md && echo "${categories[refactor]}" >> release_notes.md
+              [ -n "${categories[docs]}" ] && echo "### 📝 Documentation" >> release_notes.md && echo "${categories[docs]}" >> release_notes.md
+              [ -n "${categories[style]}" ] && echo "### 💄 Styling" >> release_notes.md && echo "${categories[style]}" >> release_notes.md
+              [ -n "${categories[tests]}" ] && echo "### ✅ Tests" >> release_notes.md && echo "${categories[tests]}" >> release_notes.md
+              [ -n "${categories[chore]}" ] && echo "### 🔧 Maintenance" >> release_notes.md && echo "${categories[chore]}" >> release_notes.md
+              [ -n "${categories[other]}" ] && echo "### 📦 Other Changes" >> release_notes.md && echo "${categories[other]}" >> release_notes.md
+            else
+              echo "First release - no previous version to compare." >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+            
           elif [ -z "$PREV_TAG" ]; then
+            # Initial release
             cat > release_notes.md << EOF
           ## 🎉 Initial Release
           
           First release of Letterboxd Sync for Obsidian!
           
-          ### Features
-          - Import movie data from Letterboxd CSV exports
-          - Create markdown notes with movie metadata
-          - Download and embed movie posters
-          - Customizable templates and metadata fields
-          - Real-time progress tracking with success/error counts
+          ### ✨ Features
+          - 🎬 Import movie data from Letterboxd CSV exports
+          - 📝 Create markdown notes with rich movie metadata
+          - 🖼️ Download and embed movie posters automatically
+          - 🎨 Customizable templates with Handlebars syntax
+          - 🔍 Selectable metadata fields for optimized imports
+          - ⚡ Real-time progress tracking with success/error counts
+          - ⌨️ Keyboard shortcuts (Enter/Esc)
+          - 🔄 Smart deduplication between diary and watched lists
+          - ✅ CSV validation before import
+          - 🎯 Rate limiting configuration
           
           EOF
           else
+            # Automatic release with categorized commits
             cat > release_notes.md << EOF
-          ## What's Changed
+          ## 📦 What's Changed
           
           EOF
             
-            # Get commits since last tag
-            git log $PREV_TAG..$TAG --pretty=format:"- %s" --no-merges >> release_notes.md
-            echo "" >> release_notes.md
-            echo "" >> release_notes.md
+            # Parse commits into categories
+            declare -A categories
+            categories[breaking]=""
+            categories[features]=""
+            categories[fixes]=""
+            categories[performance]=""
+            categories[refactor]=""
+            categories[docs]=""
+            categories[tests]=""
+            categories[style]=""
+            categories[chore]=""
+            categories[other]=""
+            
+            while IFS= read -r commit; do
+              category=$(categorize_commit "$commit")
+              if [ -n "${categories[$category]}" ]; then
+                categories[$category]="${categories[$category]}- $commit"$'\n'
+              else
+                categories[$category]="- $commit"$'\n'
+              fi
+            done < <(git log $PREV_TAG..$TAG --pretty=format:"%s" --no-merges)
+            
+            # Output categorized changes
+            [ -n "${categories[breaking]}" ] && echo "### ⚠️ Breaking Changes" >> release_notes.md && echo "${categories[breaking]}" >> release_notes.md
+            [ -n "${categories[features]}" ] && echo "### ✨ Features" >> release_notes.md && echo "${categories[features]}" >> release_notes.md
+            [ -n "${categories[fixes]}" ] && echo "### 🐛 Bug Fixes" >> release_notes.md && echo "${categories[fixes]}" >> release_notes.md
+            [ -n "${categories[performance]}" ] && echo "### ⚡ Performance" >> release_notes.md && echo "${categories[performance]}" >> release_notes.md
+            [ -n "${categories[refactor]}" ] && echo "### ♻️ Refactoring" >> release_notes.md && echo "${categories[refactor]}" >> release_notes.md
+            [ -n "${categories[docs]}" ] && echo "### 📝 Documentation" >> release_notes.md && echo "${categories[docs]}" >> release_notes.md
+            [ -n "${categories[style]}" ] && echo "### 💄 Styling" >> release_notes.md && echo "${categories[style]}" >> release_notes.md
+            [ -n "${categories[tests]}" ] && echo "### ✅ Tests" >> release_notes.md && echo "${categories[tests]}" >> release_notes.md
+            [ -n "${categories[chore]}" ] && echo "### 🔧 Maintenance" >> release_notes.md && echo "${categories[chore]}" >> release_notes.md
+            [ -n "${categories[other]}" ] && echo "### 📦 Other Changes" >> release_notes.md && echo "${categories[other]}" >> release_notes.md
           fi
           
           # Add installation instructions
           cat >> release_notes.md << EOF
           ---
           
-          ### Installation
+          ### 📥 Installation
           
-          **Option 1: Download ZIP**
+          **Option 1: Download ZIP** (Recommended)
           - Download \`obsidian-letterboxd-sync-${VERSION}.zip\` from the assets below
-          - Extract to \`.obsidian/plugins/letterboxd-sync/\`
+          - Extract the contents to \`.obsidian/plugins/letterboxd-sync/\`
+          - Restart Obsidian
+          - Enable the plugin in Settings → Community plugins
           
-          **Option 2: Download Individual Files**
+          **Option 2: Manual Installation**
           - Download \`main.js\`, \`manifest.json\`, and \`styles.css\`
-          - Place them in \`.obsidian/plugins/letterboxd-sync/\`
+          - Create folder \`.obsidian/plugins/letterboxd-sync/\`
+          - Place files in the folder
+          - Restart Obsidian and enable the plugin
           
           EOF
           

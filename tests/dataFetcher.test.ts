@@ -172,7 +172,7 @@ describe('dataFetcher (unit)', () => {
 	});
 
 	it('normalizes diary film URL before fetching', async () => {
-	const html = `
+		const html = `
 		<html>
 			<head>
 				<script type="application/ld+json">
@@ -198,16 +198,16 @@ describe('dataFetcher (unit)', () => {
 			}
 		]);
 
-	const result = await fetchMoviePageData('https://letterboxd.com/someuser/film/example-film/');
+		const result = await fetchMoviePageData('https://letterboxd.com/someuser/film/example-film/');
 
-	expect(requestUrlMock).toHaveBeenCalledTimes(1);
-const firstCallParam = requestUrlMock.mock.calls[0]?.[0] as { url?: string } | undefined;
-expect(firstCallParam?.url).toBe('https://letterboxd.com/film/example-film/');
-expect(result.movieUrl).toBe('https://letterboxd.com/film/example-film/');
-expect(result.posterUrl).toBe('https://images.example/film-poster.jpg');
+		expect(requestUrlMock).toHaveBeenCalledTimes(1);
+		const firstCallParam = requestUrlMock.mock.calls[0]?.[0] as { url?: string } | undefined;
+		expect(firstCallParam?.url).toBe('https://letterboxd.com/film/example-film/');
+		expect(result.movieUrl).toBe('https://letterboxd.com/film/example-film/');
+		expect(result.posterUrl).toBe('https://images.example/film-poster.jpg');
 		expect(result.metadata.letterboxdRating).toBe('3.8');
-expect(result.metadata.studios).toContain('Studio String');
-expect(result.metadata.countries).toEqual(expect.arrayContaining(['Country One', 'Country Two']));
+		expect(result.metadata.studios).toContain('Studio String');
+		expect(result.metadata.countries).toEqual(expect.arrayContaining(['Country One', 'Country Two']));
 	});
 });
 

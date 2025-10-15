@@ -203,16 +203,23 @@ One workflow handles both automatic and manual releases:
 **Automatic** (on tag push):
 - ✅ Validates version consistency across files
 - ✅ Runs tests and builds
-- ✅ Generates release notes from commits
+- ✅ Generates categorized release notes from commits
 - ✅ Creates published release
-- ✅ Attaches all required files
+- ✅ Attaches all required files + ZIP archive
 
 **Manual** (via GitHub UI):
 - ✅ Updates all version files automatically
 - ✅ Runs tests and builds
-- ✅ Generates release notes
+- ✅ Generates categorized release notes
 - ✅ Creates release (published, draft, or pre-release)
 - ✅ Commits version changes back to repo
+
+**Release Notes Features**:
+- 📝 Automatic categorization (Features, Fixes, Docs, etc.)
+- 🎨 Emoji indicators for easy scanning
+- 📦 Installation instructions included
+- 🔗 Full changelog link to GitHub compare
+- ✨ Professional formatting
 
 ### Version Format
 
