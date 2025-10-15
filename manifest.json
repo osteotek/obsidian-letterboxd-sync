@@ -1,7 +1,7 @@
 {
 	"id": "letterboxd-sync",
 	"name": "Letterboxd Sync",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "Import movie data from Letterboxd CSV exports and create markdown notes with posters.",
 	"author": "osteotek",
