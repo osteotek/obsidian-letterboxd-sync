@@ -11,3 +11,150 @@
 	padding: 8px 16px;
 	cursor: pointer;
 }
+
+/* Stats Display */
+.letterboxd-stats {
+	padding: 20px 0;
+}
+
+.letterboxd-stats-title {
+	margin-bottom: 24px;
+	text-align: center;
+	color: var(--text-normal);
+	font-size: 1.5em;
+	font-weight: 600;
+}
+
+.letterboxd-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.letterboxd-stat-card {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 20px;
+	transition: all 0.3s ease;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.letterboxd-stat-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.letterboxd-stat-card-wide {
+	grid-column: 1 / -1;
+}
+
+.letterboxd-stat-label {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 8px;
+	font-weight: 500;
+}
+
+.letterboxd-stat-value {
+	font-size: 2em;
+	font-weight: 700;
+	color: var(--text-accent);
+	line-height: 1.2;
+}
+
+.letterboxd-stat-file {
+	font-size: 1.3em;
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.letterboxd-stat-progress {
+	margin-bottom: 12px;
+}
+
+.letterboxd-stat-movie {
+	font-size: 0.95em;
+	color: var(--text-normal);
+	font-weight: 500;
+	margin-top: 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-style: italic;
+}
+
+.letterboxd-progress-bar-container {
+	width: 100%;
+	height: 8px;
+	background: var(--background-primary);
+	border-radius: 4px;
+	overflow: hidden;
+	margin: 12px 0;
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.letterboxd-progress-bar {
+	height: 100%;
+	background: linear-gradient(90deg, var(--interactive-accent), var(--interactive-accent-hover));
+	transition: width 0.3s ease;
+	border-radius: 4px;
+	box-shadow: 0 0 10px rgba(var(--interactive-accent-rgb), 0.5);
+}
+
+/* Animation for stat values */
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}
+
+.letterboxd-stat-value {
+	animation: pulse 2s ease-in-out infinite;
+}
+
+/* Instructions container */
+.letterboxd-instructions {
+	transition: opacity 0.3s ease;
+}
+
+/* File selectors container */
+.letterboxd-file-selectors {
+	transition: opacity 0.3s ease;
+}
+
+.letterboxd-import-steps {
+	margin: 16px 0;
+	padding-left: 24px;
+}
+
+.letterboxd-summary {
+	margin: 20px 0;
+	padding: 16px;
+	background: var(--background-secondary);
+	border-radius: 8px;
+	border-left: 4px solid var(--interactive-accent);
+}
+
+.letterboxd-summary h3 {
+	margin-top: 0;
+	margin-bottom: 12px;
+	color: var(--text-normal);
+}
+
+.letterboxd-summary ul {
+	margin: 0;
+	padding-left: 24px;
+}
+
+.letterboxd-summary li {
+	margin: 8px 0;
+	color: var(--text-muted);
+}
+
