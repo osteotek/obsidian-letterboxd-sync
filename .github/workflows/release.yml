@@ -187,9 +187,13 @@ jobs:
           
           ### Installation
           
-          Download \`main.js\`, \`manifest.json\`, and \`styles.css\` from the assets below.
+          **Option 1: Download ZIP**
+          - Download \`obsidian-letterboxd-sync-${VERSION}.zip\` from the assets below
+          - Extract to \`.obsidian/plugins/letterboxd-sync/\`
           
-          Place them in: \`.obsidian/plugins/letterboxd-sync/\`
+          **Option 2: Download Individual Files**
+          - Download \`main.js\`, \`manifest.json\`, and \`styles.css\`
+          - Place them in \`.obsidian/plugins/letterboxd-sync/\`
           
           EOF
           
@@ -198,6 +202,23 @@ jobs:
           fi
           
           cat release_notes.md
+
+      # ============================================
+      # Create release archive
+      # ============================================
+      - name: Create release archive
+        run: |
+          VERSION="${{ steps.release_type.outputs.version }}"
+          ARCHIVE="obsidian-letterboxd-sync-${VERSION}.zip"
+          
+          echo "Creating release archive: $ARCHIVE"
+          zip -j "$ARCHIVE" main.js manifest.json styles.css
+          
+          echo "Archive contents:"
+          unzip -l "$ARCHIVE"
+          
+          echo "archive_name=$ARCHIVE" >> $GITHUB_OUTPUT
+        id: archive
 
       # ============================================
       # Create GitHub release
@@ -214,6 +235,7 @@ jobs:
             main.js
             manifest.json
             styles.css
+            ${{ steps.archive.outputs.archive_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

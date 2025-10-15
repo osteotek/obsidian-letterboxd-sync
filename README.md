@@ -233,6 +233,7 @@ Every release includes:
 - ✅ `main.js` - Compiled plugin code
 - ✅ `manifest.json` - Plugin metadata
 - ✅ `styles.css` - Plugin styles
+- ✅ `obsidian-letterboxd-sync-{version}.zip` - Complete package
 
 ---
 
