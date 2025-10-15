@@ -183,9 +183,14 @@ class ImportModal extends Modal {
 				this.fileSelectorsContainer.style.display = 'none';
 				this.statsContainer.style.display = 'block';
 				this.startTime = Date.now();
+				
+				// Initialize files processed counter
+				if (this.statsElements.filesProcessed) {
+					this.statsElements.filesProcessed.setText(`0/${queue.length}`);
+				}
+				
 				this.updateTimeElapsed();
 
-				let totalMoviesProcessed = 0;
 				let filesProcessedCount = 0;
 
 				for (const { cfg, file } of queue) {
@@ -201,7 +206,7 @@ class ImportModal extends Modal {
 						{
 							sourceName: `${cfg.key}.csv`,
 							onProgress: (current, total, movieName) => {
-								this.updateStats(current, total, movieName, filesProcessedCount, totalMoviesProcessed);
+								this.updateStats(current, total, movieName);
 							},
 							isCancelled: () => cancelled
 						}
@@ -212,7 +217,6 @@ class ImportModal extends Modal {
 					}
 
 					filesProcessedCount++;
-					totalMoviesProcessed += parseInt(this.statsElements.progress?.getText().split('/')[0] || '0');
 					
 					if (this.statsElements.filesProcessed) {
 						this.statsElements.filesProcessed.setText(`${filesProcessedCount}/${queue.length}`);
@@ -261,6 +265,14 @@ class ImportModal extends Modal {
 
 	onClose() {
 		const { contentEl } = this;
+		this.isActive = false;
+		
+		// Clear timer to prevent memory leak
+		if (this.timerHandle !== null) {
+			window.clearTimeout(this.timerHandle);
+			this.timerHandle = null;
+		}
+		
 		contentEl.empty();
 	}
 
@@ -285,8 +297,8 @@ class ImportModal extends Modal {
 			cls: 'letterboxd-stat-value letterboxd-stat-progress' 
 		});
 		const progressBarContainer = progressCard.createDiv({ cls: 'letterboxd-progress-bar-container' });
-		const progressBar = progressBarContainer.createDiv({ cls: 'letterboxd-progress-bar' });
-		progressBar.style.width = '0%';
+		this.progressBarElement = progressBarContainer.createDiv({ cls: 'letterboxd-progress-bar' });
+		this.progressBarElement.style.width = '0%';
 		this.statsElements.currentMovie = progressCard.createEl('div', { 
 			text: 'Waiting...', 
 			cls: 'letterboxd-stat-movie' 
@@ -309,7 +321,7 @@ class ImportModal extends Modal {
 		});
 	}
 
-	updateStats(current: number, total: number, movieName: string, filesProcessed: number, totalMoviesProcessed: number) {
+	updateStats(current: number, total: number, movieName: string) {
 		if (this.statsElements.progress) {
 			this.statsElements.progress.setText(`${current}/${total}`);
 		}
@@ -319,25 +331,26 @@ class ImportModal extends Modal {
 		}
 
 		// Update progress bar
-		const progressBar = this.statsContainer.querySelector('.letterboxd-progress-bar') as HTMLElement;
-		if (progressBar && total > 0) {
+		if (this.progressBarElement && total > 0) {
 			const percentage = (current / total) * 100;
-			progressBar.style.width = `${percentage}%`;
+			this.progressBarElement.style.width = `${percentage}%`;
 		}
-
-		this.updateTimeElapsed();
 	}
 
 	updateTimeElapsed() {
-		if (this.statsElements.timeElapsed && this.startTime > 0) {
-			const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-			const minutes = Math.floor(elapsed / 60);
-			const seconds = elapsed % 60;
-			const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-			this.statsElements.timeElapsed.setText(timeStr);
-			
-			// Schedule next update
-			setTimeout(() => this.updateTimeElapsed(), 1000);
+		if (!this.isActive || !this.statsElements.timeElapsed || this.startTime === 0) {
+			return;
+		}
+		
+		const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+		const minutes = Math.floor(elapsed / 60);
+		const seconds = elapsed % 60;
+		const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+		this.statsElements.timeElapsed.setText(timeStr);
+		
+		// Schedule next update only if modal is still active
+		if (this.isActive) {
+			this.timerHandle = window.setTimeout(() => this.updateTimeElapsed(), 1000);
 		}
 	}
 }
